@@ -1379,7 +1379,12 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.CMSG_FORCE_FLIGHT_BACK_SPEED_CHANGE_ACK)]
         public static void HandleSpeedChangeMessage(Packet packet)
         {
-            var guid = packet.ReadPackedGuid("Guid");
+            WowGuid guid = null;
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_0_2_9056))
+                guid = packet.ReadPackedGuid("Guid");
+            else
+                guid = packet.ReadGuid("Guid");
+
             packet.ReadInt32("Movement Counter");
 
             ReadMovementInfo(packet, guid);
