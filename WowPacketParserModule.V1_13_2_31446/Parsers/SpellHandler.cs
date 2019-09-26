@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using WowPacketParser.DBC;
 using WowPacketParser.Enums;
@@ -7,18 +7,20 @@ using WowPacketParser.Parsing;
 using WowPacketParser.Store;
 using WowPacketParser.Store.Objects;
 
-namespace WowPacketParserModule.V8_0_1_27101.Parsers
+namespace WowPacketParserModule.V1_13_2_31446.Parsers
 {
     public static class SpellHandler
     {
+        public static void ReadSpellCastLogData(Packet packet, params object[] idx)
+        {
+            packet.ReadSByte("Unk1_13_2", idx);
+        }
+
         public static void ReadSpellTargetData(Packet packet, uint spellID, params object[] idx)
         {
             packet.ResetBitReader();
 
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_1_5_29683))
-                packet.ReadBitsE<TargetFlag>("Flags", 26, idx);
-            else
-                packet.ReadBitsE<TargetFlag>("Flags", 25, idx);
+            packet.ReadBitsE<TargetFlag>("Flags", 25, idx);
 
             var hasSrcLoc = packet.ReadBit("HasSrcLocation", idx);
             var hasDstLoc = packet.ReadBit("HasDstLocation", idx);
@@ -76,39 +78,6 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadWoWString("Name", nameLength, idx);
         }
 
-        public static void ReadTalentGroupInfo(Packet packet, params object[] idx)
-        {
-            packet.ReadInt32("SpecId", idx);
-
-            var talentIDsCount = packet.ReadUInt32("TalentIDsCount", idx);
-            var pvpTalentIDsCount = packet.ReadUInt32("PvPTalentIDsCount", idx);
-
-            for (var i = 0; i < talentIDsCount; ++i)
-                packet.ReadUInt16("TalentID", idx, i);
-
-            for (var i = 0; i < pvpTalentIDsCount; ++i)
-            {
-                packet.ReadUInt16("PvPTalentID", idx, i);
-                packet.ReadByte("Slot", idx, i);
-            }
-        }
-
-        public static void ReadTalentInfoUpdate(Packet packet, params object[] idx)
-        {
-            packet.ReadByte("ActiveGroup", idx);
-            packet.ReadInt32("PrimarySpecialization", idx);
-
-            var talentGroupsCount = packet.ReadUInt32("TalentGroupsCount", idx);
-            for (var i = 0; i < talentGroupsCount; ++i)
-                ReadTalentGroupInfo(packet, idx, "TalentGroupsCount", i);
-        }
-
-        [Parser(Opcode.SMSG_UPDATE_TALENT_DATA)]
-        public static void ReadUpdateTalentData(Packet packet)
-        {
-            ReadTalentInfoUpdate(packet, "Info");
-        }
-
         public static void ReadSpellCastData(Packet packet, params object[] idx)
         {
             packet.ReadPackedGuid128("CasterGUID", idx);
@@ -126,8 +95,6 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
 
             V6_0_2_19033.Parsers.SpellHandler.ReadMissileTrajectoryResult(packet, idx, "MissileTrajectory");
 
-            packet.ReadInt32("Ammo.DisplayID", idx);
-
             packet.ReadByte("DestLocSpellCastIndex", idx);
 
             V6_0_2_19033.Parsers.SpellHandler.ReadCreatureImmunities(packet, idx, "Immunities");
@@ -138,14 +105,13 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
 
             var hitTargetsCount = packet.ReadBits("HitTargetsCount", 16, idx);
             var missTargetsCount = packet.ReadBits("MissTargetsCount", 16, idx);
-            uint hitStatusCount = 0;
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_1_0_28724))
-                hitStatusCount = packet.ReadBits("HitStatusCount", 16, idx);
             var missStatusCount = packet.ReadBits("MissStatusCount", 16, idx);
             var remainingPowerCount = packet.ReadBits("RemainingPowerCount", 9, idx);
 
             var hasRuneData = packet.ReadBit("HasRuneData", idx);
             var targetPointsCount = packet.ReadBits("TargetPointsCount", 16, idx);
+            var hasAmmoDisplayId = packet.ReadBit("HasAmmoDisplayId", idx);
+            var hasAmmoInventoryType = packet.ReadBit("HasAmmoInventoryType", idx);
 
             for (var i = 0; i < missStatusCount; ++i)
                 V6_0_2_19033.Parsers.SpellHandler.ReadSpellMissStatus(packet, idx, "MissStatus", i);
@@ -158,10 +124,6 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             for (var i = 0; i < missTargetsCount; ++i)
                 packet.ReadPackedGuid128("MissTarget", idx, i);
 
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_1_0_28724))
-                for (var i = 0; i < hitStatusCount; ++i)
-                    packet.ReadByte("HitStatus", idx, i);
-
             for (var i = 0; i < remainingPowerCount; ++i)
                 V6_0_2_19033.Parsers.SpellHandler.ReadSpellPowerData(packet, idx, "RemainingPower", i);
 
@@ -170,26 +132,12 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
 
             for (var i = 0; i < targetPointsCount; ++i)
                 V6_0_2_19033.Parsers.SpellHandler.ReadLocation(packet, idx, "TargetPoints", i);
-        }
 
-        public static void ReadSpellCastLogData(Packet packet, params object[] idx)
-        {
-            packet.ReadInt64("Health", idx);
-            packet.ReadInt32("AttackPower", idx);
-            packet.ReadInt32("SpellPower", idx);
-            packet.ReadInt32("Armor", idx);
+            if (hasAmmoDisplayId)
+                packet.ReadInt32("AmmoDisplayId", idx);
 
-            packet.ResetBitReader();
-
-            var spellLogPowerDataCount = packet.ReadBits("SpellLogPowerData", 9, idx);
-
-            // SpellLogPowerData
-            for (var i = 0; i < spellLogPowerDataCount; ++i)
-            {
-                packet.ReadInt32("PowerType", idx, i);
-                packet.ReadInt32("Amount", idx, i);
-                packet.ReadInt32("Cost", idx, i);
-            }
+            if (hasAmmoInventoryType)
+                packet.ReadInt32E<InventoryType>("AmmoInventoryType", idx);
         }
 
         [Parser(Opcode.SMSG_SPELL_START)]
@@ -205,27 +153,9 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
 
             packet.ResetBitReader();
 
-            var hasLogData = packet.ReadBit();
-            if (hasLogData)
-                ReadSpellCastLogData(packet, "LogData");
-        }
-
-        public static void ReadContentTuningParams(Packet packet, params object[] idx)
-        {
-            packet.ResetBitReader();
-
-            packet.ReadInt16("PlayerLevelDelta", idx);
-            packet.ReadUInt16("PlayerItemLevel", idx);
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_1_0_28724) && ClientVersion.Expansion != ClientType.Classic)
-                packet.ReadUInt16("TargetItemLevel", idx);
-            packet.ReadUInt16("ScalingHealthItemLevelCurveID", idx);
-            packet.ReadByte("TargetLevel", idx);
-            packet.ReadByte("Expansion", idx);
-            packet.ReadByte("TargetMinScalingLevel", idx);
-            packet.ReadByte("TargetMaxScalingLevel", idx);
-            packet.ReadSByte("TargetScalingLevelDelta", idx);
-            packet.ReadBits("Type", 4, idx);
-            packet.ReadBit("ScalesWithItemLevel", idx);
+            var unkBit = packet.ReadBit();
+            if (unkBit)
+                packet.ReadSByte("UnkSByte");
         }
 
         [HasSniffData]
@@ -233,7 +163,7 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
         public static void HandleAuraUpdate(Packet packet)
         {
             packet.ReadBit("UpdateAll");
-            var count = packet.ReadBits("AurasCount", 9);
+            var count = packet.ReadBits("AurasCount", 7);
 
             var auras = new List<Aura>();
             for (var i = 0; i < count; ++i)
@@ -269,7 +199,7 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
                     var hasContentTuning = packet.ReadBit("HasContentTuning", i);
 
                     if (hasContentTuning)
-                        ReadContentTuningParams(packet, i, "ContentTuning");
+                        V8_0_1_27101.Parsers.SpellHandler.ReadContentTuningParams(packet, i, "ContentTuning");
 
                     if (hasCastUnit)
                         packet.ReadPackedGuid128("CastUnit", i);
@@ -308,77 +238,6 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
                     else
                         unit.AddedAuras.Add(auras);
                 }
-            }
-        }
-
-        [Parser(Opcode.SMSG_PLAY_SPELL_VISUAL)]
-        public static void HandleCastVisual(Packet packet)
-        {
-            packet.ReadPackedGuid128("Source");
-            packet.ReadPackedGuid128("Target");
-            packet.ReadPackedGuid128("Transport");
-
-            packet.ReadVector3("TargetPosition");
-
-            packet.ReadInt32("SpellVisualID");
-            packet.ReadSingle("TravelSpeed");
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_1_0_28724))
-                packet.ReadUInt16("HitReason");
-            packet.ReadUInt16("MissReason");
-            packet.ReadUInt16("ReflectStatus");
-
-            packet.ReadSingle("LaunchDelay");
-            packet.ReadSingle("MinDuration");
-
-            packet.ReadBit("SpeedAsTime");
-        }
-
-        [Parser(Opcode.SMSG_PLAY_ORPHAN_SPELL_VISUAL)]
-        public static void HandlePlayOrphanSpellVisual(Packet packet)
-        {
-            packet.ReadVector3("SourceLocation");
-            packet.ReadVector3("SourceOrientation");
-            packet.ReadVector3("TargetLocation");
-            packet.ReadPackedGuid128("Target");
-            packet.ReadInt32("SpellVisualID");
-            packet.ReadSingle("TravelSpeed");
-            packet.ReadSingle("LaunchDelay");
-            packet.ReadSingle("MinDuration");
-            packet.ReadBit("SpeedAsTime");
-        }
-
-        [Parser(Opcode.CMSG_CANCEL_CHANNELLING)]
-        public static void HandleCancelChanneling(Packet packet)
-        {
-            packet.ReadInt32<SpellId>("SpellID");
-            packet.ReadInt32("Reason");
-        }
-
-        [Parser(Opcode.SMSG_ADD_LOSS_OF_CONTROL)]
-        public static void HandleAddLossOfControl(Packet packet)
-        {
-            packet.ReadPackedGuid128("Victim");
-            packet.ReadInt32<SpellId>("SpellID");
-            packet.ReadPackedGuid128("Caster");
-
-            packet.ReadUInt32("Duration");
-            packet.ReadUInt32("DurationRemaining");
-            packet.ReadUInt32E<SpellSchoolMask>("LockoutSchoolMask");
-
-            packet.ReadByteE<SpellMechanic>("Mechanic");
-            packet.ReadByte("Type");
-        }
-
-        [Parser(Opcode.SMSG_SEND_SPELL_CHARGES)] // already since 7.?.?
-        public static void HandleSendSpellCharges(Packet packet)
-        {
-            var int4 = packet.ReadInt32("SpellChargeEntryCount");
-            for (int i = 0; i < int4; i++)
-            {
-                packet.ReadUInt32("Category", i);
-                packet.ReadUInt32("NextRecoveryTime", i);
-                packet.ReadSingle("ChargeModRate", i);
-                packet.ReadByte("ConsumedCharges", i);
             }
         }
     }
