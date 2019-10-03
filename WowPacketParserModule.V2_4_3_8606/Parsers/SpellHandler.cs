@@ -27,8 +27,8 @@ namespace WowPacketParser.Parsing.Parsers
             }
         }
 
-        [Parser(Opcode.SMSG_SET_EXTRA_AURA_INFO_OBSOLETE)] // 2.4.3
-        [Parser(Opcode.SMSG_SET_EXTRA_AURA_INFO_NEED_UPDATE_OBSOLETE)] // 2.4.3
+        [Parser(Opcode.SMSG_SET_EXTRA_AURA_INFO)] // 2.4.3
+        [Parser(Opcode.SMSG_SET_EXTRA_AURA_INFO_NEED_UPDATE)] // 2.4.3
         public static void HandleSetExtraAuraInfo(Packet packet)
         {
             packet.ReadPackedGuid();

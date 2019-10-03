@@ -1045,8 +1045,8 @@ namespace WowPacketParser.Enums.Version.V4_0_3_13329
             {Opcode.SMSG_SERVER_FIRST_ACHIEVEMENT, 0xA92A}, // (0xCA10)(0x0498) //
             {Opcode.SMSG_SERVER_INFO_RESPONSE, 0x04A1}, // NF()(0x04A1) // // not found
             {Opcode.SMSG_CHAT_SERVER_MESSAGE, 0x2100}, // (0x221C)(0x0291) //
-            {Opcode.SMSG_SET_EXTRA_AURA_INFO_NEED_UPDATE_OBSOLETE, 0x03A5}, // NF()(0x03A5) //
-            {Opcode.SMSG_SET_EXTRA_AURA_INFO_OBSOLETE, 0x03A4}, // NF()(0x03A4) //
+            {Opcode.SMSG_SET_EXTRA_AURA_INFO_NEED_UPDATE, 0x03A5}, // NF()(0x03A5) //
+            {Opcode.SMSG_SET_EXTRA_AURA_INFO, 0x03A4}, // NF()(0x03A4) //
             {Opcode.SMSG_SET_FACTION_AT_WAR, 0x4657}, // (0x2A59)(0x0313) //
             {Opcode.SMSG_SET_FACTION_STANDING, 0x367F}, // (0xA211)(0x0124) //
             {Opcode.SMSG_SET_FACTION_VISIBLE, 0xF676}, // (0xA394)(0x0123) //

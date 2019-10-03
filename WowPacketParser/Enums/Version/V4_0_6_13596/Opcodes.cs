@@ -1117,8 +1117,8 @@ namespace WowPacketParser.Enums.Version.V4_0_6_13596
             {Opcode.SMSG_CHAT_SERVER_MESSAGE, 0x078C0},
             //{Opcode.SMSG_SERVER_MESSAGE_BOX, 0x0080C}, //Servermsgbox-like4.0.6a13623
             {Opcode.SMSG_SETUP_CURRENCY, 0x0091C},
-            {Opcode.SMSG_SET_EXTRA_AURA_INFO_NEED_UPDATE_OBSOLETE, 0x1016A}, //UnknownopcodeID
-            {Opcode.SMSG_SET_EXTRA_AURA_INFO_OBSOLETE, 0x10169}, //UnknownopcodeID
+            {Opcode.SMSG_SET_EXTRA_AURA_INFO_NEED_UPDATE, 0x1016A}, //UnknownopcodeID
+            {Opcode.SMSG_SET_EXTRA_AURA_INFO, 0x10169}, //UnknownopcodeID
             {Opcode.SMSG_SET_FACTION_AT_WAR, 0x0EEEC},
             {Opcode.SMSG_SET_FACTION_STANDING, 0x0718C},
             {Opcode.SMSG_SET_FACTION_VISIBLE, 0x03988},

@@ -363,7 +363,11 @@ namespace WowPacketParser.Parsing.Parsers
             if (ClientVersion.AddedInVersion(ClientType.Cataclysm))
                 packet.ReadInt32("Glyph Index");
 
-            var castFlags = packet.ReadByteE<CastFlag>("Cast Flags");
+            CastFlag castFlags = CastFlag.None;
+
+            if (ClientVersion.AddedInVersion(ClientType.WrathOfTheLichKing))
+                castFlags = packet.ReadByteE<CastFlag>("Cast Flags");
+
             if (castFlags.HasAnyFlag(CastFlag.HasTrajectory))
             {
                 ReadSpellCastTargets(packet);
