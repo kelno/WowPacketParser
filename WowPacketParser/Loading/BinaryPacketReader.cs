@@ -43,6 +43,7 @@ namespace WowPacketParser.Loading
             if (Encoding.ASCII.GetString(headerStart) != "PKT")
             {
                 // file does not have a header
+                SetBuild(8606); // client build
                 _reader.BaseStream.Position = 0;
                 return;
             }
