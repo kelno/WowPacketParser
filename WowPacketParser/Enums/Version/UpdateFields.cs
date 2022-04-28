@@ -137,7 +137,7 @@ namespace WowPacketParser.Enums.Version
             return null;
         }
 
-        public static int GetUpdateField<T>(T field) // where T: System.Enum // C# 7.3
+        public static int GetUpdateField<T>(T field) where T: Enum
         {
             Dictionary<string, int> byNamesDict;
             if (UpdateFieldNameDictionary.TryGetValue(typeof(T), out byNamesDict))
@@ -150,7 +150,7 @@ namespace WowPacketParser.Enums.Version
             return -1;
         }
 
-        public static string GetUpdateFieldName<T>(int field) // where T: System.Enum // C# 7.3
+        public static string GetUpdateFieldName<T>(int field) where T: Enum
         {
             SortedList<int, UpdateFieldInfo> infoDict;
             if (UpdateFieldDictionary.TryGetValue(typeof(T), out infoDict))
@@ -170,7 +170,7 @@ namespace WowPacketParser.Enums.Version
             return field.ToString(CultureInfo.InvariantCulture);
         }
 
-        public static UpdateFieldInfo GetUpdateFieldInfo<T>(int field) // where T: System.Enum // C# 7.3
+        public static UpdateFieldInfo GetUpdateFieldInfo<T>(int field) where T: Enum
         {
             SortedList<int, UpdateFieldInfo> infoDict;
             if (UpdateFieldDictionary.TryGetValue(typeof(T), out infoDict))
@@ -398,6 +398,8 @@ namespace WowPacketParser.Enums.Version
                     return "V6_2_4_21315";
                 }
                 case ClientVersionBuild.V7_0_3_22248:
+                case ClientVersionBuild.V7_0_3_22267:
+                case ClientVersionBuild.V7_0_3_22277:
                 case ClientVersionBuild.V7_0_3_22280:
                 case ClientVersionBuild.V7_0_3_22289:
                 case ClientVersionBuild.V7_0_3_22293:
@@ -592,8 +594,115 @@ namespace WowPacketParser.Enums.Version
                 case ClientVersionBuild.V8_3_0_33169:
                 case ClientVersionBuild.V8_3_0_33237:
                 case ClientVersionBuild.V8_3_0_33369:
+                case ClientVersionBuild.V8_3_0_33528:
+                case ClientVersionBuild.V8_3_0_33724:
+                case ClientVersionBuild.V8_3_0_33775:
+                case ClientVersionBuild.V8_3_0_33941:
+                case ClientVersionBuild.V8_3_0_34220:
+                case ClientVersionBuild.V8_3_0_34601:
+                case ClientVersionBuild.V8_3_0_34769:
+                case ClientVersionBuild.V8_3_0_34963:
+                case ClientVersionBuild.V8_3_7_35249:
+                case ClientVersionBuild.V8_3_7_35284:
+                case ClientVersionBuild.V8_3_7_35435:
+                case ClientVersionBuild.V8_3_7_35662:
                 {
-                    return "V8_3_0_32861";
+                    return "V8_3_0_33062";
+                }
+                case ClientVersionBuild.V9_0_1_36216:
+                case ClientVersionBuild.V9_0_1_36228:
+                case ClientVersionBuild.V9_0_1_36230:
+                case ClientVersionBuild.V9_0_1_36247:
+                case ClientVersionBuild.V9_0_1_36272:
+                case ClientVersionBuild.V9_0_1_36322:
+                case ClientVersionBuild.V9_0_1_36372:
+                case ClientVersionBuild.V9_0_1_36492:
+                case ClientVersionBuild.V9_0_1_36577:
+                {
+                    return "V9_0_1_36216";
+                }
+                case ClientVersionBuild.V9_0_2_36639:
+                case ClientVersionBuild.V9_0_2_36665:
+                case ClientVersionBuild.V9_0_2_36671:
+                case ClientVersionBuild.V9_0_2_36710:
+                case ClientVersionBuild.V9_0_2_36734:
+                case ClientVersionBuild.V9_0_2_36751:
+                case ClientVersionBuild.V9_0_2_36753:
+                case ClientVersionBuild.V9_0_2_36839:
+                case ClientVersionBuild.V9_0_2_36949:
+                case ClientVersionBuild.V9_0_2_37106:
+                case ClientVersionBuild.V9_0_2_37142:
+                case ClientVersionBuild.V9_0_2_37176:
+                case ClientVersionBuild.V9_0_2_37474:
+                {
+                    return "V9_0_2_36639";
+                }
+                case ClientVersionBuild.V9_0_5_37503:
+                case ClientVersionBuild.V9_0_5_37862:
+                case ClientVersionBuild.V9_0_5_37864:
+                case ClientVersionBuild.V9_0_5_37893:
+                case ClientVersionBuild.V9_0_5_37899:
+                case ClientVersionBuild.V9_0_5_37988:
+                case ClientVersionBuild.V9_0_5_38134:
+                case ClientVersionBuild.V9_0_5_38556:
+                {
+                    return "V9_0_5_37862";
+                }
+                case ClientVersionBuild.V9_1_0_39185:
+                case ClientVersionBuild.V9_1_0_39226:
+                case ClientVersionBuild.V9_1_0_39229:
+                case ClientVersionBuild.V9_1_0_39262:
+                case ClientVersionBuild.V9_1_0_39282:
+                case ClientVersionBuild.V9_1_0_39289:
+                case ClientVersionBuild.V9_1_0_39291:
+                case ClientVersionBuild.V9_1_0_39318:
+                case ClientVersionBuild.V9_1_0_39335:
+                case ClientVersionBuild.V9_1_0_39427:
+                case ClientVersionBuild.V9_1_0_39497:
+                case ClientVersionBuild.V9_1_0_39498:
+                case ClientVersionBuild.V9_1_0_39584:
+                case ClientVersionBuild.V9_1_0_39617:
+                case ClientVersionBuild.V9_1_0_39653:
+                case ClientVersionBuild.V9_1_0_39804:
+                case ClientVersionBuild.V9_1_0_40000:
+                case ClientVersionBuild.V9_1_0_40120:
+                case ClientVersionBuild.V9_1_0_40443:
+                case ClientVersionBuild.V9_1_0_40593:
+                case ClientVersionBuild.V9_1_0_40725:
+                {
+                    return "V9_1_0_39185";
+                }
+                case ClientVersionBuild.V9_1_5_40772:
+                case ClientVersionBuild.V9_1_5_40871:
+                case ClientVersionBuild.V9_1_5_40906:
+                case ClientVersionBuild.V9_1_5_40944:
+                case ClientVersionBuild.V9_1_5_40966:
+                case ClientVersionBuild.V9_1_5_41031:
+                case ClientVersionBuild.V9_1_5_41079:
+                case ClientVersionBuild.V9_1_5_41288:
+                case ClientVersionBuild.V9_1_5_41323:
+                case ClientVersionBuild.V9_1_5_41359:
+                case ClientVersionBuild.V9_1_5_41488:
+                case ClientVersionBuild.V9_1_5_41793:
+                case ClientVersionBuild.V9_1_5_42010:
+                {
+                    return "V9_1_5_40772";
+                }
+                case ClientVersionBuild.V9_2_0_42423:
+                case ClientVersionBuild.V9_2_0_42488:
+                case ClientVersionBuild.V9_2_0_42521:
+                case ClientVersionBuild.V9_2_0_42538:
+                case ClientVersionBuild.V9_2_0_42560:
+                case ClientVersionBuild.V9_2_0_42614:
+                case ClientVersionBuild.V9_2_0_42698:
+                case ClientVersionBuild.V9_2_0_42852:
+                case ClientVersionBuild.V9_2_0_42937:
+                case ClientVersionBuild.V9_2_0_42979:
+                case ClientVersionBuild.V9_2_0_43114:
+                case ClientVersionBuild.V9_2_0_43206:
+                case ClientVersionBuild.V9_2_0_43340:
+                {
+                    return "V9_2_0_42423";
                 }
                 case ClientVersionBuild.V1_13_2_31446:
                 case ClientVersionBuild.V1_13_2_31650:
@@ -604,6 +713,9 @@ namespace WowPacketParser.Enums.Version
                 case ClientVersionBuild.V1_13_2_32089:
                 case ClientVersionBuild.V1_13_2_32421:
                 case ClientVersionBuild.V1_13_2_32600:
+                {
+                    return "V1_13_2_31446";
+                }
                 case ClientVersionBuild.V1_13_3_32790:
                 case ClientVersionBuild.V1_13_3_32836:
                 case ClientVersionBuild.V1_13_3_32887:
@@ -612,8 +724,74 @@ namespace WowPacketParser.Enums.Version
                 case ClientVersionBuild.V1_13_3_33526:
                 case ClientVersionBuild.V1_13_4_33598:
                 case ClientVersionBuild.V1_13_4_33645:
-                    {
-                    return "V1_13_2_31446";
+                case ClientVersionBuild.V1_13_4_33728:
+                case ClientVersionBuild.V1_13_4_33920:
+                case ClientVersionBuild.v1_13_4_34219:
+                case ClientVersionBuild.v1_13_4_34266:
+                case ClientVersionBuild.v1_13_4_34600:
+                case ClientVersionBuild.v1_13_5_34713:
+                case ClientVersionBuild.v1_13_5_34911:
+                case ClientVersionBuild.V1_13_5_35100:
+                case ClientVersionBuild.V1_13_5_35186:
+                case ClientVersionBuild.V1_13_5_35753:
+                case ClientVersionBuild.V1_13_5_36035:
+                case ClientVersionBuild.V1_13_5_36325:
+                case ClientVersionBuild.v1_13_6_36231:
+                case ClientVersionBuild.V1_13_6_36497:
+                case ClientVersionBuild.V1_13_6_36324:
+                case ClientVersionBuild.V1_13_6_36524:
+                case ClientVersionBuild.V1_13_6_36611:
+                case ClientVersionBuild.V1_13_6_36714:
+                case ClientVersionBuild.V1_13_6_36935:
+                case ClientVersionBuild.V1_13_6_37497:
+                case ClientVersionBuild.V1_13_7_38363:
+                case ClientVersionBuild.V1_13_7_38386:
+                case ClientVersionBuild.V1_13_7_38475:
+                case ClientVersionBuild.V1_13_7_38631:
+                case ClientVersionBuild.V1_13_7_38704:
+                case ClientVersionBuild.V1_13_7_39605:
+                case ClientVersionBuild.V1_13_7_39692:
+                {
+                    return "V1_13_3_32790";
+                }
+                case ClientVersionBuild.V2_5_1_38598:
+                case ClientVersionBuild.V2_5_1_38644:
+                case ClientVersionBuild.V2_5_1_38707:
+                case ClientVersionBuild.V2_5_1_38741:
+                case ClientVersionBuild.V2_5_1_38757:
+                case ClientVersionBuild.V2_5_1_38835:
+                case ClientVersionBuild.V2_5_1_38892:
+                case ClientVersionBuild.V2_5_1_38921:
+                case ClientVersionBuild.V2_5_1_38988:
+                case ClientVersionBuild.V2_5_1_39170:
+                case ClientVersionBuild.V2_5_1_39475:
+                case ClientVersionBuild.V2_5_1_39603:
+                case ClientVersionBuild.V2_5_1_39640:
+                {
+                    return "V2_5_1_38835";
+                }
+                case ClientVersionBuild.V2_5_2_39570:
+                case ClientVersionBuild.V2_5_2_39618:
+                case ClientVersionBuild.V2_5_2_39926:
+                case ClientVersionBuild.V2_5_2_40011:
+                case ClientVersionBuild.V2_5_2_40045:
+                case ClientVersionBuild.V2_5_2_40203:
+                case ClientVersionBuild.V2_5_2_40260:
+                case ClientVersionBuild.V2_5_2_40422:
+                case ClientVersionBuild.V2_5_2_40488:
+                case ClientVersionBuild.V2_5_2_40617:
+                case ClientVersionBuild.V2_5_2_40892:
+                case ClientVersionBuild.V2_5_2_41446:
+                case ClientVersionBuild.V2_5_2_41510:
+                {
+                    return "V2_5_2_39570";
+                }
+                case ClientVersionBuild.V2_5_3_41812:
+                case ClientVersionBuild.V2_5_3_42083:
+                case ClientVersionBuild.V2_5_3_42328:
+                case ClientVersionBuild.V2_5_3_42598:
+                {
+                    return "V2_5_3_41812";
                 }
                 default:
                 {

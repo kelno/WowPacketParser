@@ -14,15 +14,20 @@ namespace WowPacketParser.Misc
         public static readonly string[] AreaFilters = Conf.GetStringList("AreaFilters", new string[0]);
         public static readonly int FilterPacketsNum = Conf.GetInt("FilterPacketsNum", 0);
         public static readonly ClientVersionBuild ClientBuild = Conf.GetEnum("ClientBuild", ClientVersionBuild.Zero);
+        public static readonly LocaleConstant ClientLocale = Conf.GetEnum("ClientLocale", LocaleConstant.enUS);
         public static readonly TargetedDatabase TargetedDatabase = Conf.GetEnum("TargetedDatabase", TargetedDatabase.WrathOfTheLichKing);
         public static readonly DumpFormatType DumpFormat = Conf.GetEnum("DumpFormat", DumpFormatType.Text);
         public static readonly ulong SQLOutputFlag = GetSQLOutputFlag();
         public static readonly bool SQLOrderByKey = Conf.GetBoolean("SqlOrderByKey", false);
+        public static readonly bool SaveTempSpawns = Conf.GetBoolean("SaveTempSpawns", true);
         public static readonly bool SkipOnlyVerifiedBuildUpdateRows = Conf.GetBoolean("SkipOnlyVerifiedBuildUpdateRows", false);
+        public static readonly bool SkipRowsWithFallbackValues = Conf.GetBoolean("SkipRowsWithFallbackValues", true);
         public static readonly bool IgnoreZeroValues = Conf.GetBoolean("IgnoreZeroValues", false);
         public static readonly bool ForceInsertQueries = Conf.GetBoolean("ForceInsertQueries", false);
         public static readonly bool RecalcDiscount = Conf.GetBoolean("RecalcDiscount", false);
+        public static readonly bool ForcePhaseZero = Conf.GetBoolean("ForcePhaseZero", false);
         public static readonly string SQLFileName = Conf.GetString("SQLFileName", string.Empty);
+        public static readonly bool SplitSQLFile = Conf.GetBoolean("SplitSQLFile", false);
         public static readonly bool ShowEndPrompt = Conf.GetBoolean("ShowEndPrompt", false);
         public static readonly bool LogErrors = Conf.GetBoolean("LogErrors", false);
         public static readonly bool LogPacketErrors = Conf.GetBoolean("LogPacketErrors", false);
@@ -31,6 +36,7 @@ namespace WowPacketParser.Misc
         public static readonly bool ParsingLog = Conf.GetBoolean("ParsingLog", false);
         public static readonly bool DevMode = Conf.GetBoolean("DevMode", false);
         public static readonly int Threads = Conf.GetInt("Threads", 8);
+        public static readonly bool ParseAllHotfixes = Conf.GetBoolean("ParseAllHotfixes", false);
 
         public static readonly bool SSHEnabled = Conf.GetBoolean("SSHEnabled", false);
         public static readonly string SSHHost = Conf.GetString("SSHHost", "localhost");
@@ -52,6 +58,7 @@ namespace WowPacketParser.Misc
         // DB2
         public static readonly string DBCPath = Conf.GetString("DBCPath", $@"\dbc");
         public static readonly string DBCLocale = Conf.GetString("DBCLocale", "enUS");
+        public static readonly string HotfixCachePath = Conf.GetString("HotfixCachePath", $@"\cache\DBCache.bin");
         public static readonly bool UseDBC = Conf.GetBoolean("UseDBC", false);
         public static readonly bool ParseSpellInfos = Conf.GetBoolean("ParseSpellInfos", false);
 
@@ -73,7 +80,17 @@ namespace WowPacketParser.Misc
 
         public static bool DumpFormatWithText()
         {
-            return DumpFormat != DumpFormatType.SqlOnly && DumpFormat != DumpFormatType.SniffDataOnly;
+            return DumpFormat != DumpFormatType.SqlOnly &&
+                   DumpFormat != DumpFormatType.SniffDataOnly &&
+                   DumpFormat != DumpFormatType.UniversalProto;
+        }
+
+        public static bool DumpFormatWithTextToFile()
+        {
+            return DumpFormat != DumpFormatType.SqlOnly &&
+                   DumpFormat != DumpFormatType.SniffDataOnly &&
+                   DumpFormat != DumpFormatType.UniversalProto &&
+                   DumpFormat != DumpFormatType.UniversalProtoWithText;
         }
 
         public static bool DumpFormatWithSQL()

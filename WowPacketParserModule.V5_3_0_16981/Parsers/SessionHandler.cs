@@ -66,7 +66,7 @@ namespace WowPacketParserModule.V5_3_0_16981.Parsers
             var size = (int)packet.ReadBits(11);
             packet.ResetBitReader();
             packet.ReadBytesString("Account name", size);
-            packet.AddValue("Proof SHA-1 Hash", Utilities.ByteArrayToHexString(sha));
+            packet.AddValue("Proof SHA-1 Hash", Convert.ToHexString(sha));
         }
 
         [Parser(Opcode.SMSG_AUTH_RESPONSE)]
@@ -148,7 +148,7 @@ namespace WowPacketParserModule.V5_3_0_16981.Parsers
             var guid = packet.StartBitStream(3, 4, 0, 6, 7, 1, 2, 5);
             packet.ParseBitStream(guid, 0, 3, 7, 6, 1, 2, 4, 5);
             CoreParsers.SessionHandler.LoginGuid = new WowGuid64(BitConverter.ToUInt64(guid, 0));
-            packet.WriteGuid("Guid", guid);
+            packet.Holder.PlayerLogin = new() { PlayerGuid = packet.WriteGuid("Guid", guid) };
         }
 
         [Parser(Opcode.SMSG_LOGOUT_COMPLETE)]

@@ -1,5 +1,6 @@
 using WowPacketParser.Enums;
 using WowPacketParser.Misc;
+using WowPacketParser.Proto;
 using WowPacketParser.Store;
 using WowPacketParser.Store.Objects;
 
@@ -32,6 +33,7 @@ namespace WowPacketParser.Parsing.Parsers
                 Type = packet.ReadInt32E<GameObjectType>("Type"),
                 DisplayID = packet.ReadUInt32("Display ID")
             };
+            var query = packet.Holder.QueryGameObjectResponse = new() { Entry = (uint)entry.Key, HasData = true};
 
             var name = new string[4];
             for (int i = 0; i < 4; i++)
@@ -47,15 +49,18 @@ namespace WowPacketParser.Parsing.Parsers
                 gameObject.Data[i] = packet.ReadInt32("Data", i);
 
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_0_2_9056)) // not sure when it was added exactly - did not exist in 2.4.1 sniff
-                gameObject.Size = packet.ReadSingle("Size");
+                gameObject.Size = query.Size = packet.ReadSingle("Size");
 
             gameObject.QuestItems = new uint?[ClientVersion.AddedInVersion(ClientVersionBuild.V3_2_0_10192) ? 6 : 4];
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_1_0_9767))
                 for (int i = 0; i < gameObject.QuestItems.Length; i++)
+                {
                     gameObject.QuestItems[i] = (uint)packet.ReadInt32<ItemId>("Quest Item", i);
+                    query.Items.Add(gameObject.QuestItems[i].Value);
+                }
 
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_0_6_13596))
-                gameObject.RequiredLevel = packet.ReadInt32("RequiredLevel");
+                gameObject.RequiredLevel = query.RequiredLevel = packet.ReadInt32("RequiredLevel");
 
             packet.AddSniffData(StoreNameType.GameObject, entry.Key, "QUERY_RESPONSE");
 
@@ -68,6 +73,14 @@ namespace WowPacketParser.Parsing.Parsers
                 Name = gameObject.Name
             };
             Storage.ObjectNames.Add(objectName, packet.TimeSpan);
+
+            query.Type = (uint)gameObject.Type.Value;
+            query.Model = gameObject.DisplayID.Value;
+            query.Name = gameObject.Name;
+            query.IconName = gameObject.IconName;
+            query.CastCaption = gameObject.CastCaption;
+            foreach (var data in gameObject.Data)
+                query.Data.Add(data.Value);
         }
 
         [Parser(Opcode.SMSG_DESTRUCTIBLE_BUILDING_DAMAGE)]
@@ -81,20 +94,34 @@ namespace WowPacketParser.Parsing.Parsers
         }
 
         [Parser(Opcode.SMSG_GAMEOBJECT_DESPAWN_ANIM)]
-        [Parser(Opcode.CMSG_GAME_OBJ_USE)]
-        [Parser(Opcode.CMSG_GAME_OBJ_REPORT_USE)]
         [Parser(Opcode.SMSG_PAGE_TEXT)]
         [Parser(Opcode.SMSG_GAME_OBJECT_RESET_STATE)]
         public static void HandleGOMisc(Packet packet)
         {
+            var use = packet.Holder.ClientUseGameObject = new PacketClientUseGameObject();
             packet.ReadGuid("GUID");
+        }
+        
+        [Parser(Opcode.CMSG_GAME_OBJ_USE)]
+        public static void HandleGOUse(Packet packet)
+        {
+            var use = packet.Holder.ClientUseGameObject = new PacketClientUseGameObject();
+            use.GameObject = packet.ReadGuid("GUID");
+        }
+        
+        [Parser(Opcode.CMSG_GAME_OBJ_REPORT_USE)]
+        public static void HandleGOReportUse(Packet packet)
+        {
+            var use = packet.Holder.ClientUseGameObject = new PacketClientUseGameObject() { Report = true };
+            use.GameObject = packet.ReadGuid("GUID");
         }
 
         [Parser(Opcode.SMSG_GAME_OBJECT_CUSTOM_ANIM)]
         public static void HandleGOCustomAnim(Packet packet)
         {
-            packet.ReadGuid("GUID");
-            packet.ReadInt32("Anim");
+            var customAnim = packet.Holder.GameObjectCustomAnim = new();
+            customAnim.GameObject = packet.ReadGuid("GUID");
+            customAnim.Anim = packet.ReadInt32("Anim");
         }
 
         [Parser(Opcode.SMSG_GAME_OBJECT_ACTIVATE_ANIM_KIT)] // 4.3.4

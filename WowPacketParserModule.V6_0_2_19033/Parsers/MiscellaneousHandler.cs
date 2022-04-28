@@ -1,9 +1,9 @@
 ﻿
 using System;
 using WowPacketParser.Enums;
-using WowPacketParser.Loading;
 using WowPacketParser.Misc;
 using WowPacketParser.Parsing;
+using WowPacketParser.Proto;
 using WowPacketParser.Store;
 using WowPacketParser.Store.Objects;
 using CoreParsers = WowPacketParser.Parsing.Parsers;
@@ -409,10 +409,11 @@ namespace WowPacketParserModule.V6_0_2_19033.Parsers
         public static void HandleClientAreaTrigger(Packet packet)
         {
             var entry = packet.ReadEntry("Area Trigger Id");
-            packet.ReadBit("Entered");
+            var entered = packet.ReadBit("Entered");
             packet.ReadBit("FromClient");
 
             packet.AddSniffData(StoreNameType.AreaTrigger, entry.Key, "AREATRIGGER");
+            packet.Holder.ClientAreaTrigger = new() { Enter = entered, AreaTrigger = (uint)entry.Key };
         }
 
         [Parser(Opcode.SMSG_ACCOUNT_MOUNT_UPDATE)]
@@ -432,8 +433,8 @@ namespace WowPacketParserModule.V6_0_2_19033.Parsers
                 packet.ReadBit("MountIsFavorite", i);
         }
 
-        [Parser(Opcode.SMSG_ACCOUNT_TOYS_UPDATE)]
-        public static void HandleAccountToysUpdate(Packet packet)
+        [Parser(Opcode.SMSG_ACCOUNT_TOY_UPDATE)]
+        public static void HandleAccountToyUpdate(Packet packet)
         {
             packet.ReadBit("IsFullUpdate");
 
@@ -456,21 +457,22 @@ namespace WowPacketParserModule.V6_0_2_19033.Parsers
 
             packet.ReadInt32("Unk");
 
-            int int32 = packet.ReadInt32("ItemCount");
-            int int16 = packet.ReadInt32("FlagsCount");
+            uint itemCount = packet.ReadUInt32("ItemCount");
+            uint flagCount = packet.ReadUInt32("FlagsCount");
 
-            for (int i = 0; i < int32; i++)
+            for (uint i = 0u; i < itemCount; i++)
                 packet.ReadInt32<ItemId>("ItemID", i);
 
-            for (int i = 0; i < int16; i++)
-                packet.ReadInt32("Flags", i);
+            for (uint i = 0u; i < flagCount; i++)
+                packet.ReadUInt32("Flags", i);
         }
 
         [Parser(Opcode.SMSG_PLAY_SOUND)]
         public static void HandlePlaySound(Packet packet)
         {
-            uint sound = packet.ReadUInt32<SoundId>("SoundKitID");
-            packet.ReadPackedGuid128("SourceObjectGUID");
+            PacketPlaySound packetPlaySound = packet.Holder.PlaySound = new PacketPlaySound();
+            uint sound = packetPlaySound.Sound = packet.ReadUInt32<SoundId>("SoundKitID");
+            packetPlaySound.Source = packet.ReadPackedGuid128("SourceObjectGUID").ToUniversalGuid();
 
             Storage.Sounds.Add(sound, packet.TimeSpan);
         }
@@ -478,7 +480,8 @@ namespace WowPacketParserModule.V6_0_2_19033.Parsers
         [Parser(Opcode.SMSG_PLAY_MUSIC)]
         public static void HandlePlayMusic(Packet packet)
         {
-            uint sound = packet.ReadUInt32<SoundId>("SoundKitID");
+            PacketPlayMusic packetMusic = packet.Holder.PlayMusic = new PacketPlayMusic();
+            uint sound = packetMusic.Music = packet.ReadUInt32<SoundId>("SoundKitID");
 
             Storage.Sounds.Add(sound, packet.TimeSpan);
         }
@@ -534,13 +537,15 @@ namespace WowPacketParserModule.V6_0_2_19033.Parsers
         [Parser(Opcode.SMSG_PLAY_ONE_SHOT_ANIM_KIT)]
         public static void HandlePlayOneShotAnimKit(Packet packet)
         {
-            packet.ReadPackedGuid128("Unit");
-            packet.ReadUInt16("AnimKitID");
+            var animKit = packet.Holder.OneShotAnimKit = new();
+            animKit.Unit = packet.ReadPackedGuid128("Unit");
+            animKit.AnimKit = packet.ReadUInt16("AnimKitID");
         }
 
         [Parser(Opcode.SMSG_SET_AI_ANIM_KIT)]
         public static void SetAIAnimKitId(Packet packet)
         {
+            var animKit = packet.Holder.SetAnimKit = new();
             var guid = packet.ReadPackedGuid128("Unit");
             var animKitID = packet.ReadUInt16("AnimKitID");
 
@@ -551,6 +556,9 @@ namespace WowPacketParserModule.V6_0_2_19033.Parsers
                     if (timeSpan != null && timeSpan.Value.Duration() <= TimeSpan.FromSeconds(1))
                         ((Unit)Storage.Objects[guid].Item1).AIAnimKit = animKitID;
                 }
+
+            animKit.Unit = guid;
+            animKit.AnimKit = animKitID;
         }
 
         [Parser(Opcode.SMSG_SET_MELEE_ANIM_KIT)]
@@ -731,9 +739,10 @@ namespace WowPacketParserModule.V6_0_2_19033.Parsers
         [Parser(Opcode.SMSG_PLAY_OBJECT_SOUND)]
         public static void HandlePlayObjectSound(Packet packet)
         {
-            uint sound = packet.ReadUInt32<SoundId>("SoundId");
-            packet.ReadPackedGuid128("SourceObjectGUID");
-            packet.ReadPackedGuid128("TargetObjectGUID");
+            PacketPlayObjectSound packetSound = packet.Holder.PlayObjectSound = new PacketPlayObjectSound();
+            uint sound = packetSound.Sound = packet.ReadUInt32<SoundId>("SoundId");
+            packetSound.Source = packet.ReadPackedGuid128("SourceObjectGUID");
+            packetSound.Target = packet.ReadPackedGuid128("TargetObjectGUID");
             packet.ReadVector3("Position");
 
             Storage.Sounds.Add(sound, packet.TimeSpan);
@@ -820,8 +829,8 @@ namespace WowPacketParserModule.V6_0_2_19033.Parsers
         }
 
         // new opcode on 6.x, related to combat log and mostly used in garrisons
-        [Parser(Opcode.SMSG_WORLD_TEXT)]
-        public static void HandleWorldText(Packet packet)
+        [Parser(Opcode.SMSG_DISPLAY_WORLD_TEXT)]
+        public static void HandleDisplayWorldText(Packet packet)
         {
             packet.ReadPackedGuid128("Guid");
             packet.ReadInt32("Arg1");

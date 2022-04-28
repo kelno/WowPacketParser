@@ -8,7 +8,6 @@ using WowPacketParser.Loading;
 using WowPacketParser.Misc;
 using WowPacketParser.Parsing.Parsers;
 using WowPacketParser.SQL;
-using WowPacketParser.DBC;
 
 namespace WowPacketParser
 {
@@ -58,12 +57,15 @@ namespace WowPacketParser
 
             SQLConnector.ReadDB();
 
+            var processStartTime = DateTime.Now;
             var count = 0;
             foreach (var file in files)
             {
                 SessionHandler.ZStreams.Clear();
                 if (Settings.ClientBuild != Enums.ClientVersionBuild.Zero)
                     ClientVersion.SetVersion(Settings.ClientBuild);
+
+                ClientLocale.SetLocale(Settings.ClientLocale.ToString());
 
                 try
                 {
@@ -74,11 +76,13 @@ namespace WowPacketParser
                 {
                     Console.WriteLine($"Can't process {file}. Skipping. Message: {ex.Message}");
                 }
-
             }
 
             if (!string.IsNullOrWhiteSpace(Settings.SQLFileName) && Settings.DumpFormatWithSQL())
                 Builder.DumpSQL("Dumping global sql", Settings.SQLFileName, SniffFile.GetHeader("multi"));
+
+            var processTime = DateTime.Now.Subtract(processStartTime);
+            Trace.WriteLine($"Processing {files.Count} sniffs took { processTime.ToFormattedString() }.");
 
             SQLConnector.Disconnect();
             SSHTunnel.Disconnect();

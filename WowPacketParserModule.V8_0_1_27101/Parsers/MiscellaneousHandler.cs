@@ -1,6 +1,7 @@
-﻿using WowPacketParser.Enums;
+using WowPacketParser.Enums;
 using WowPacketParser.Misc;
 using WowPacketParser.Parsing;
+using CoreParsers = WowPacketParser.Parsing.Parsers;
 
 namespace WowPacketParserModule.V8_0_1_27101.Parsers
 {
@@ -22,13 +23,26 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadUInt32("ScrollOfResurrectionMaxRequestsPerDay");
             packet.ReadUInt32("CfgRealmID");
             packet.ReadInt32("CfgRealmRecID");
+
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_2_5_31921))
+            {
+                packet.ReadUInt32("MaxRecruits", "RAFSystem");
+                packet.ReadUInt32("MaxRecruitMonths", "RAFSystem");
+                packet.ReadUInt32("MaxRecruitmentUses", "RAFSystem");
+                packet.ReadUInt32("DaysInCycle", "RAFSystem");
+            }
+
             packet.ReadUInt32("TwitterPostThrottleLimit");
             packet.ReadUInt32("TwitterPostThrottleCooldown");
             packet.ReadUInt32("TokenPollTimeSeconds");
-            packet.ReadUInt32E<ConsumableTokenRedeem>("TokenRedeemIndex");
+
+            if (ClientVersion.RemovedInVersion(ClientVersionBuild.V8_2_5_31921))
+                packet.ReadUInt32E<ConsumableTokenRedeem>("TokenRedeemIndex");
+
             packet.ReadInt64("TokenBalanceAmount");
             packet.ReadUInt32("BpayStoreProductDeliveryDelay");
             packet.ReadUInt32("ClubsPresenceUpdateTimer");
+
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_1_0_28724))
                 packet.ReadUInt32("HiddenUIClubsPresenceUpdateTimer");
 
@@ -42,7 +56,16 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadBit("ItemRestorationButtonEnabled");
             packet.ReadBit("BrowserEnabled");
             var hasSessionAlert = packet.ReadBit("HasSessionAlert");
-            packet.ReadBit("RecruitAFriendSendingEnabled");
+
+            if (ClientVersion.RemovedInVersion(ClientVersionBuild.V8_2_5_31921))
+                packet.ReadBit("RecruitAFriendSendingEnabled");
+
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_2_5_31921))
+            {
+                packet.ReadBit("Enabled", "RAFSystem");
+                packet.ReadBit("RecruitingEnabled", "RAFSystem");
+            }
+
             packet.ReadBit("CharUndeleteEnabled");
             packet.ReadBit("RestrictedAccount");
             packet.ReadBit("CommerceSystemEnabled");
@@ -53,16 +76,29 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadBit("WillKickFromWorld");
             packet.ReadBit("KioskModeEnabled");
             packet.ReadBit("CompetitiveModeEnabled");
-            var hasRaceClassExpansionLevels = packet.ReadBit("RaceClassExpansionLevels");
+
+            var hasRaceClassExpansionLevels = false;
+            if (ClientVersion.RemovedInVersion(ClientVersionBuild.V8_3_0_33062))
+                hasRaceClassExpansionLevels = packet.ReadBit("RaceClassExpansionLevels");
+
             packet.ReadBit("TokenBalanceEnabled");
             packet.ReadBit("WarModeFeatureEnabled");
             packet.ReadBit("ClubsEnabled");
             packet.ReadBit("ClubsBattleNetClubTypeAllowed");
             packet.ReadBit("ClubsCharacterClubTypeAllowed");
+
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_1_5_29683))
                 packet.ReadBit("ClubsPresenceUpdateEnabled");
+
             packet.ReadBit("VoiceChatDisabledByParentalControl");
             packet.ReadBit("VoiceChatMutedByParentalControl");
+
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_2_5_31921))
+            {
+                packet.ReadBit("QuestSessionEnabled");
+                packet.ReadBit("Unused825");
+                packet.ReadBit("ClubFinderEnabled");
+            }
 
             {
                 packet.ResetBitReader();
@@ -124,7 +160,10 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadBit("IsExpansionPreorderInStore");
             packet.ReadBit("KioskModeEnabled");
             packet.ReadBit("IsCompetitiveModeEnabled");
-            packet.ReadBit("NoHandler"); // not accessed in handler
+
+            if (ClientVersion.RemovedInVersion(ClientVersionBuild.V8_2_5_31921))
+                packet.ReadBit("NoHandler"); // not accessed in handler
+
             packet.ReadBit("TrialBoostEnabled");
             packet.ReadBit("TokenBalanceEnabled");
             packet.ReadBit("LiveRegionCharacterListEnabled");
@@ -132,7 +171,8 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadBit("LiveRegionAccountCopyEnabled");
 
             packet.ReadUInt32("TokenPollTimeSeconds");
-            packet.ReadUInt32E<ConsumableTokenRedeem>("TokenRedeemIndex");
+            if (ClientVersion.RemovedInVersion(ClientVersionBuild.V8_2_5_31921))
+                packet.ReadUInt32E<ConsumableTokenRedeem>("TokenRedeemIndex");
             packet.ReadInt64("TokenBalanceAmount");
             packet.ReadInt32("MaxCharactersPerRealm");
             packet.ReadUInt32("BpayStoreProductDeliveryDelay");
@@ -142,15 +182,15 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadInt32("MaximumExpansionLevel");
         }
 
-        [Parser(Opcode.SMSG_LIGHTNING_STORM_START)]
-        [Parser(Opcode.SMSG_LIGHTNING_STORM_END)]
+        [Parser(Opcode.SMSG_START_LIGHTNING_STORM)]
+        [Parser(Opcode.SMSG_END_LIGHTNING_STORM)]
         public static void HandleLightningStorm(Packet packet)
         {
             packet.ReadUInt32("LightningStormId");
         }
 
-        [Parser(Opcode.CMSG_QUERY_COMMUNITY_NAME)]
-        public static void HandleQueryCommunityName(Packet packet)
+        [Parser(Opcode.CMSG_QUERY_PLAYER_NAME_BY_COMMUNITY_ID)]
+        public static void HandleQueryPlayerNameByCommunityID(Packet packet)
         {
             packet.ReadPackedGuid128("BNetAccountGUID");
             packet.ReadUInt64("CommunityDbID");
@@ -181,52 +221,32 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             }
         }
 
+        public static void ReadWhoEntry(Packet packet, params object[] idx)
+        {
+            CharacterHandler.ReadPlayerGuidLookupData(packet, idx);
+
+            packet.ReadPackedGuid128("GuildGUID", idx);
+
+            packet.ReadUInt32("GuildVirtualRealmAddress", idx);
+            packet.ReadInt32<AreaId>("AreaID", idx);
+
+            packet.ResetBitReader();
+            var guildNameLen = packet.ReadBits(7);
+            packet.ReadBit("IsGM", idx);
+
+            packet.ReadWoWString("GuildName", guildNameLen, idx);
+        }
+
         [Parser(Opcode.SMSG_WHO)]
         public static void HandleWho(Packet packet)
         {
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_3_7_35249) || ClientVersion.IsBurningCrusadeClassicClientVersionBuild(ClientVersion.Build))
+                packet.ReadUInt32("RequestID");
+
             var bits568 = packet.ReadBits("List count", 6);
 
             for (var i = 0; i < bits568; ++i)
-            {
-                packet.ResetBitReader();
-                packet.ReadBit("IsDeleted", i);
-                var bits15 = packet.ReadBits(6);
-
-                var declinedNamesLen = new int[5];
-                for (var j = 0; j < 5; ++j)
-                {
-                    packet.ResetBitReader();
-                    declinedNamesLen[j] = (int)packet.ReadBits(7);
-                }
-
-                for (var j = 0; j < 5; ++j)
-                    packet.ReadWoWString("DeclinedNames", declinedNamesLen[j], i, j);
-
-                packet.ReadPackedGuid128("AccountID", i);
-                packet.ReadPackedGuid128("BnetAccountID", i);
-                packet.ReadPackedGuid128("GuidActual", i);
-
-                packet.ReadUInt64("GuildClubMemberID", i);
-                packet.ReadUInt32("VirtualRealmAddress", i);
-
-                packet.ReadByteE<Race>("Race", i);
-                packet.ReadByteE<Gender>("Sex", i);
-                packet.ReadByteE<Class>("ClassId", i);
-                packet.ReadByte("Level", i);
-
-                packet.ReadWoWString("Name", bits15, i);
-
-                packet.ReadPackedGuid128("GuildGUID", i);
-
-                packet.ReadInt32("GuildVirtualRealmAddress", i);
-                packet.ReadInt32<AreaId>("AreaID", i);
-
-                packet.ResetBitReader();
-                var bits460 = packet.ReadBits(7);
-                packet.ReadBit("IsGM", i);
-
-                packet.ReadWoWString("GuildName", bits460, i);
-            }
+                ReadWhoEntry(packet, i);
         }
 
         [Parser(Opcode.SMSG_MULTIPLE_PACKETS)]
@@ -300,6 +320,83 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
                 if (hasQuantityLostSource)
                     packet.ReadInt32("QuantityLostSource");
             }
+        }
+
+        [Parser(Opcode.SMSG_WORLD_SERVER_INFO, ClientVersionBuild.V8_3_0_33062)]
+        public static void HandleWorldServerInfo(Packet packet)
+        {
+            CoreParsers.MovementHandler.CurrentDifficultyID = packet.ReadUInt32<DifficultyId>("DifficultyID");
+            packet.ReadByte("IsTournamentRealm");
+
+            packet.ReadBit("XRealmPvpAlert");
+            packet.ReadBit("BlockExitingLoadingScreen");
+            var hasRestrictedAccountMaxLevel = packet.ReadBit("HasRestrictedAccountMaxLevel");
+            var hasRestrictedAccountMaxMoney = packet.ReadBit("HasRestrictedAccountMaxMoney");
+            var hasInstanceGroupSize = packet.ReadBit("HasInstanceGroupSize");
+
+            if (hasRestrictedAccountMaxLevel)
+                packet.ReadInt32("RestrictedAccountMaxLevel");
+
+            if (hasRestrictedAccountMaxMoney)
+                packet.ReadInt32("RestrictedAccountMaxMoney");
+
+            if (hasInstanceGroupSize)
+                packet.ReadInt32("InstanceGroupSize");
+        }
+
+        [Parser(Opcode.SMSG_CLEAR_RESURRECT)]
+        public static void HandleClearResurrect(Packet packet)
+        {
+        }
+
+        [Parser(Opcode.CMSG_WHO)]
+        public static void HandleWhoRequest(Packet packet)
+        {
+            var areaCount = packet.ReadBits(4);
+
+            packet.ReadInt32("MinLevel");
+            packet.ReadInt32("MaxLevel");
+            packet.ReadInt64("RaceFilter");
+            packet.ReadInt32("ClassFilter");
+
+            packet.ResetBitReader();
+
+            var nameLen = packet.ReadBits(6);
+            var virtualRealmNameLen = packet.ReadBits(9);
+            var guildLen = packet.ReadBits(7);
+            var guildVirtualRealmNameLen = packet.ReadBits(9);
+            var wordCount = packet.ReadBits(3);
+
+            packet.ReadBit("ShowEnemies");
+            packet.ReadBit("ShowArenaPlayers");
+            packet.ReadBit("ExactName");
+            var hasServerInfo = packet.ReadBit("HasServerInfo");
+            packet.ResetBitReader();
+
+            for (var i = 0; i < wordCount; ++i)
+            {
+                var bits0 = packet.ReadBits(7);
+                packet.ReadWoWString("Word", bits0, i);
+                packet.ResetBitReader();
+            }
+
+            packet.ReadWoWString("Name", nameLen);
+            packet.ReadWoWString("VirtualRealmName", virtualRealmNameLen);
+            packet.ReadWoWString("Guild", guildLen);
+            packet.ReadWoWString("GuildVirtualRealmName", guildVirtualRealmNameLen);
+
+            // WhoRequestServerInfo
+            if (hasServerInfo)
+            {
+                packet.ReadInt32("FactionGroup");
+                packet.ReadInt32("Locale");
+                packet.ReadInt32("RequesterVirtualRealmAddress");
+            }
+
+            packet.ReadUInt32("RequestID");
+
+            for (var i = 0; i < areaCount; ++i)
+                packet.ReadUInt32<AreaId>("Area", i);
         }
     }
 }

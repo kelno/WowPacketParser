@@ -2,7 +2,6 @@
 using System.Text;
 using WowPacketParser.Enums;
 using WowPacketParser.Hotfix;
-using WowPacketParser.Loading;
 using WowPacketParser.Misc;
 using WowPacketParser.Store;
 using WowPacketParser.Store.Objects;
@@ -12,7 +11,7 @@ namespace WowPacketParser.SQL.Builders
     [BuilderClass]
     public static class HotfixBuilder
     {
-        [BuilderMethod]
+        [BuilderMethod(TargetSQLDatabase.Hotfixes)]
         public static string Hotfixes()
         {
             var stringBuilder = new StringBuilder();
@@ -26,6 +25,8 @@ namespace WowPacketParser.SQL.Builders
             }
             else
             {
+                var emptyStringBuilder = new StringBuilder();
+
                 foreach (DB2Hash hashValue in Enum.GetValues(typeof (DB2Hash)))
                 {
                     if (!HotfixSettings.Instance.ShouldLog(hashValue))
@@ -33,14 +34,15 @@ namespace WowPacketParser.SQL.Builders
 
                     var localeBuilder = new StringBuilder();
                     HotfixStoreMgr.GetStore(hashValue)?.Serialize(stringBuilder, localeBuilder);
-                    stringBuilder.Append(localeBuilder);
+                    emptyStringBuilder.Append(localeBuilder);
                 }
+                return emptyStringBuilder.ToString();
             }
 
             return stringBuilder.ToString();
         }
 
-        [BuilderMethod(true)]
+        [BuilderMethod(true, TargetSQLDatabase.Hotfixes)]
         public static string HotfixData()
         {
             if (Storage.HotfixDatas.IsEmpty())
@@ -62,10 +64,10 @@ namespace WowPacketParser.SQL.Builders
                 rows.Add(row);
             }
 
-            return "TRUNCATE `hotfix_data`;" + Environment.NewLine + new SQLInsert<HotfixData>(rows, false).Build();
+            return "DELETE FROM `hotfix_data` WHERE `VerifiedBuild`>0;" + Environment.NewLine + new SQLInsert<HotfixData>(rows, false).Build();
         }
 
-        [BuilderMethod(true)]
+        [BuilderMethod(true, TargetSQLDatabase.Hotfixes)]
         public static string HotfixBlob()
         {
             if (Storage.HotfixBlobs.IsEmpty())
@@ -87,11 +89,11 @@ namespace WowPacketParser.SQL.Builders
                 rows.Add(row);
             }
 
-            return "TRUNCATE `hotfix_blob`;" + Environment.NewLine + new SQLInsert<HotfixBlob>(rows, false).Build();
+            return $"DELETE FROM `hotfix_blob` WHERE `locale` = '{ClientLocale.PacketLocale}' AND `VerifiedBuild`>0;" + Environment.NewLine + new SQLInsert<HotfixBlob>(rows, false).Build();
         }
 
         // Special Hotfix Builders
-        [BuilderMethod(true)]
+        [BuilderMethod(true, TargetSQLDatabase.Hotfixes)]
         public static string BroadcastText()
         {
             if (Storage.BroadcastTexts.IsEmpty())
@@ -109,7 +111,7 @@ namespace WowPacketParser.SQL.Builders
             return SQLUtil.Compare(Storage.BroadcastTexts, templatesDb, StoreNameType.None);
         }
 
-        [BuilderMethod(true)]
+        [BuilderMethod(true, TargetSQLDatabase.Hotfixes)]
         public static string BroadcastTextLocales()
         {
             if (Storage.BroadcastTextLocales.IsEmpty())
@@ -122,6 +124,20 @@ namespace WowPacketParser.SQL.Builders
             var templatesDb = SQLDatabase.Get(new RowList<Store.Objects.BroadcastTextLocale>(), Settings.HotfixesDatabase);
 
             return "SET NAMES 'utf8';" + Environment.NewLine + SQLUtil.Compare(Storage.BroadcastTextLocales, templatesDb, StoreNameType.None) + Environment.NewLine + "SET NAMES 'latin1';";
+        }
+
+        [BuilderMethod(TargetSQLDatabase.Hotfixes)]
+        public static string HotfixOptionalData()
+        {
+            if (Storage.HotfixOptionalDatas.IsEmpty())
+                return string.Empty;
+
+            if (!Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.hotfix_optional_data))
+                return string.Empty;
+
+            var templatesDb = SQLDatabase.Get(new RowList<Store.Objects.HotfixOptionalData>(), Settings.HotfixesDatabase);
+
+            return SQLUtil.Compare(Storage.HotfixOptionalDatas, templatesDb, StoreNameType.None);
         }
     }
 }

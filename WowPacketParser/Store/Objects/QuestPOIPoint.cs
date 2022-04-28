@@ -1,10 +1,11 @@
+using WowPacketParser.Enums;
 using WowPacketParser.Misc;
 using WowPacketParser.SQL;
 
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("quest_poi_points")]
-    public sealed class QuestPOIPoint : IDataModel
+    public sealed record QuestPOIPoint : IDataModel
     {
         [DBFieldName("QuestID", true)]
         public int? QuestID;
@@ -20,6 +21,9 @@ namespace WowPacketParser.Store.Objects
 
         [DBFieldName("Y")]
         public int? Y;
+
+        [DBFieldName("Z", TargetedDatabase.Shadowlands)]
+        public int? Z;
 
         [DBFieldName("VerifiedBuild")]
         public int? VerifiedBuild = ClientVersion.BuildInt;

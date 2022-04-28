@@ -18,11 +18,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IObjectData ReadUpdateObjectData(Packet packet, IObjectData existingData, params object[] indexes)
+        public override IObjectData ReadUpdateObjectData(Packet packet, params object[] indexes)
         {
-            var data = existingData as ObjectData;
-            if (data == null)
-                data = new ObjectData();
+            var data = new ObjectData();
             var rawChangesMask = new int[1];
             rawChangesMask[0] = (int)packet.ReadBits(4);
             var changesMask = new BitArray(rawChangesMask);
@@ -206,7 +204,7 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             data.Gems.Resize(packet.ReadUInt32());
             if ((flags & UpdateFieldFlag.Owner) != UpdateFieldFlag.None)
             {
-                data.Field_130 = packet.ReadUInt32("Field_130", indexes);
+                data.DynamicFlags2 = packet.ReadUInt32("DynamicFlags2", indexes);
             }
             for (var i = 0; i < data.Modifiers.Count; ++i)
             {
@@ -223,11 +221,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IItemData ReadUpdateItemData(Packet packet, IItemData existingData, params object[] indexes)
+        public override IItemData ReadUpdateItemData(Packet packet, params object[] indexes)
         {
-            var data = existingData as ItemData;
-            if (data == null)
-                data = new ItemData();
+            var data = new ItemData();
             var rawChangesMask = new int[2];
             var rawMaskMask = new int[1];
             rawMaskMask[0] = (int)packet.ReadBits(2);
@@ -355,7 +351,7 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
                 }
                 if (changesMask[19])
                 {
-                    data.Field_130 = packet.ReadUInt32("Field_130", indexes);
+                    data.DynamicFlags2 = packet.ReadUInt32("DynamicFlags2", indexes);
                 }
             }
             if (changesMask[20])
@@ -392,11 +388,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IContainerData ReadUpdateContainerData(Packet packet, IContainerData existingData, params object[] indexes)
+        public override IContainerData ReadUpdateContainerData(Packet packet, params object[] indexes)
         {
-            var data = existingData as ContainerData;
-            if (data == null)
-                data = new ContainerData();
+            var data = new ContainerData();
             var rawChangesMask = new int[2];
             var rawMaskMask = new int[1];
             rawMaskMask[0] = (int)packet.ReadBits(2);
@@ -437,11 +431,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IAzeriteEmpoweredItemData ReadUpdateAzeriteEmpoweredItemData(Packet packet, IAzeriteEmpoweredItemData existingData, params object[] indexes)
+        public override IAzeriteEmpoweredItemData ReadUpdateAzeriteEmpoweredItemData(Packet packet, params object[] indexes)
         {
-            var data = existingData as AzeriteEmpoweredItemData;
-            if (data == null)
-                data = new AzeriteEmpoweredItemData();
+            var data = new AzeriteEmpoweredItemData();
             var rawChangesMask = new int[1];
             var rawMaskMask = new int[1];
             rawMaskMask[0] = (int)packet.ReadBits(1);
@@ -478,11 +470,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IAzeriteItemData ReadUpdateAzeriteItemData(Packet packet, IAzeriteItemData existingData, params object[] indexes)
+        public override IAzeriteItemData ReadUpdateAzeriteItemData(Packet packet, params object[] indexes)
         {
-            var data = existingData as AzeriteItemData;
-            if (data == null)
-                data = new AzeriteItemData();
+            var data = new AzeriteItemData();
             var rawChangesMask = new int[1];
             rawChangesMask[0] = (int)packet.ReadBits(6);
             var changesMask = new BitArray(rawChangesMask);
@@ -786,11 +776,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IUnitData ReadUpdateUnitData(Packet packet, IUnitData existingData, params object[] indexes)
+        public override IUnitData ReadUpdateUnitData(Packet packet, params object[] indexes)
         {
-            var data = existingData as UnitData;
-            if (data == null)
-                data = new UnitData();
+            var data = new UnitData();
             var rawChangesMask = new int[6];
             var rawMaskMask = new int[1];
             rawMaskMask[0] = (int)packet.ReadBits(6);
@@ -1565,11 +1553,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IPlayerData ReadUpdatePlayerData(Packet packet, IPlayerData existingData, params object[] indexes)
+        public override IPlayerData ReadUpdatePlayerData(Packet packet, params object[] indexes)
         {
-            var data = existingData as PlayerData;
-            if (data == null)
-                data = new PlayerData();
+            var data = new PlayerData();
             var rawChangesMask = new int[6];
             var rawMaskMask = new int[1];
             rawMaskMask[0] = (int)packet.ReadBits(6);
@@ -1873,7 +1859,7 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             data.Field_14 = packet.ReadUInt32("Field_14", indexes);
             data.Field_18 = packet.ReadUInt32("Field_18", indexes);
             data.PvpTierID = packet.ReadUInt32("PvpTierID", indexes);
-            data.Field_20 = packet.ReadBits("Field_20", 1, indexes);
+            data.Field_20 = packet.ReadBit("Field_20", indexes);
             return data;
         }
 
@@ -1887,44 +1873,47 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             rawChangesMask[0] = (int)packet.ReadBits(10);
             var changesMask = new BitArray(rawChangesMask);
 
-            packet.ResetBitReader();
             if (changesMask[0])
             {
                 if (changesMask[1])
                 {
-                    data.Field_0 = packet.ReadUInt32("Field_0", indexes);
+                    data.Field_20 = packet.ReadBit("Field_20", indexes);
                 }
+            }
+            packet.ResetBitReader();
+            if (changesMask[0])
+            {
                 if (changesMask[2])
                 {
-                    data.Field_4 = packet.ReadUInt32("Field_4", indexes);
+                    data.Field_0 = packet.ReadUInt32("Field_0", indexes);
                 }
                 if (changesMask[3])
                 {
-                    data.Field_8 = packet.ReadUInt32("Field_8", indexes);
+                    data.Field_4 = packet.ReadUInt32("Field_4", indexes);
                 }
                 if (changesMask[4])
                 {
-                    data.Field_C = packet.ReadUInt32("Field_C", indexes);
+                    data.Field_8 = packet.ReadUInt32("Field_8", indexes);
                 }
                 if (changesMask[5])
                 {
-                    data.Rating = packet.ReadUInt32("Rating", indexes);
+                    data.Field_C = packet.ReadUInt32("Field_C", indexes);
                 }
                 if (changesMask[6])
                 {
-                    data.Field_14 = packet.ReadUInt32("Field_14", indexes);
+                    data.Rating = packet.ReadUInt32("Rating", indexes);
                 }
                 if (changesMask[7])
                 {
-                    data.Field_18 = packet.ReadUInt32("Field_18", indexes);
+                    data.Field_14 = packet.ReadUInt32("Field_14", indexes);
                 }
                 if (changesMask[8])
                 {
-                    data.PvpTierID = packet.ReadUInt32("PvpTierID", indexes);
+                    data.Field_18 = packet.ReadUInt32("Field_18", indexes);
                 }
                 if (changesMask[9])
                 {
-                    data.Field_20 = packet.ReadBits("Field_20", 1, indexes);
+                    data.PvpTierID = packet.ReadUInt32("PvpTierID", indexes);
                 }
             }
             return data;
@@ -2244,11 +2233,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IActivePlayerData ReadUpdateActivePlayerData(Packet packet, IActivePlayerData existingData, params object[] indexes)
+        public override IActivePlayerData ReadUpdateActivePlayerData(Packet packet, params object[] indexes)
         {
-            var data = existingData as ActivePlayerData;
-            if (data == null)
-                data = new ActivePlayerData();
+            var data = new ActivePlayerData();
             packet.ResetBitReader();
             var rawChangesMask = new int[46];
             var rawMaskMask = new int[2];
@@ -3025,11 +3012,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IGameObjectData ReadUpdateGameObjectData(Packet packet, IGameObjectData existingData, params object[] indexes)
+        public override IGameObjectData ReadUpdateGameObjectData(Packet packet, params object[] indexes)
         {
-            var data = existingData as GameObjectData;
-            if (data == null)
-                data = new GameObjectData();
+            var data = new GameObjectData();
             var rawChangesMask = new int[1];
             rawChangesMask[0] = (int)packet.ReadBits(20);
             var changesMask = new BitArray(rawChangesMask);
@@ -3150,11 +3135,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IDynamicObjectData ReadUpdateDynamicObjectData(Packet packet, IDynamicObjectData existingData, params object[] indexes)
+        public override IDynamicObjectData ReadUpdateDynamicObjectData(Packet packet, params object[] indexes)
         {
-            var data = existingData as DynamicObjectData;
-            if (data == null)
-                data = new DynamicObjectData();
+            var data = new DynamicObjectData();
             var rawChangesMask = new int[1];
             rawChangesMask[0] = (int)packet.ReadBits(7);
             var changesMask = new BitArray(rawChangesMask);
@@ -3219,11 +3202,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override ICorpseData ReadUpdateCorpseData(Packet packet, ICorpseData existingData, params object[] indexes)
+        public override ICorpseData ReadUpdateCorpseData(Packet packet, params object[] indexes)
         {
-            var data = existingData as CorpseData;
-            if (data == null)
-                data = new CorpseData();
+            var data = new CorpseData();
             var rawChangesMask = new int[2];
             var rawMaskMask = new int[1];
             rawMaskMask[0] = (int)packet.ReadBits(2);
@@ -3320,7 +3301,7 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public static ScaleCurve ReadCreateScaleCurve(Packet packet, UpdateFieldFlag flags, params object[] indexes)
+        public static IScaleCurve ReadCreateScaleCurve(Packet packet, UpdateFieldFlag flags, params object[] indexes)
         {
             var data = new ScaleCurve();
             packet.ResetBitReader();
@@ -3334,19 +3315,44 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public static ScaleCurve ReadUpdateScaleCurve(Packet packet, IScaleCurve existingData, params object[] indexes)
+        public static IScaleCurve ReadUpdateScaleCurve(Packet packet, IScaleCurve existingData, params object[] indexes)
         {
             var data = existingData as ScaleCurve;
             if (data == null)
                 data = new ScaleCurve();
             packet.ResetBitReader();
-            data.OverrideActive = packet.ReadBit("OverrideActive", indexes);
-            packet.ResetBitReader();
-            data.StartTimeOffset = packet.ReadUInt32("StartTimeOffset", indexes);
-            data.ParameterCurve = packet.ReadUInt32("ParameterCurve", indexes);
-            for (var i = 0; i < 2; ++i)
+            var rawChangesMask = new int[1];
+            rawChangesMask[0] = (int)packet.ReadBits(7);
+            var changesMask = new BitArray(rawChangesMask);
+
+            if (changesMask[0])
             {
-                data.Points[i] = packet.ReadVector2("Points", indexes, i);
+                if (changesMask[1])
+                {
+                    data.OverrideActive = packet.ReadBit("OverrideActive", indexes);
+                }
+            }
+            packet.ResetBitReader();
+            if (changesMask[0])
+            {
+                if (changesMask[2])
+                {
+                    data.StartTimeOffset = packet.ReadUInt32("StartTimeOffset", indexes);
+                }
+                if (changesMask[3])
+                {
+                    data.ParameterCurve = packet.ReadUInt32("ParameterCurve", indexes);
+                }
+            }
+            if (changesMask[4])
+            {
+                for (var i = 0; i < 2; ++i)
+                {
+                    if (changesMask[5 + i])
+                    {
+                        data.Points[i] = packet.ReadVector2("Points", indexes, i);
+                    }
+                }
             }
             return data;
         }
@@ -3370,11 +3376,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IAreaTriggerData ReadUpdateAreaTriggerData(Packet packet, IAreaTriggerData existingData, params object[] indexes)
+        public override IAreaTriggerData ReadUpdateAreaTriggerData(Packet packet, params object[] indexes)
         {
-            var data = existingData as AreaTriggerData;
-            if (data == null)
-                data = new AreaTriggerData();
+            var data = new AreaTriggerData();
             var rawChangesMask = new int[1];
             rawChangesMask[0] = (int)packet.ReadBits(14);
             var changesMask = new BitArray(rawChangesMask);
@@ -3448,11 +3452,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override ISceneObjectData ReadUpdateSceneObjectData(Packet packet, ISceneObjectData existingData, params object[] indexes)
+        public override ISceneObjectData ReadUpdateSceneObjectData(Packet packet, params object[] indexes)
         {
-            var data = existingData as SceneObjectData;
-            if (data == null)
-                data = new SceneObjectData();
+            var data = new SceneObjectData();
             var rawChangesMask = new int[1];
             rawChangesMask[0] = (int)packet.ReadBits(5);
             var changesMask = new BitArray(rawChangesMask);
@@ -3512,23 +3514,31 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             data.CreatureID = packet.ReadUInt32("CreatureID", indexes);
             data.CreatureDisplayInfoID = packet.ReadUInt32("CreatureDisplayInfoID", indexes);
             data.ActorGUID = packet.ReadPackedGuid128("ActorGUID", indexes);
-            data.Field_18 = packet.ReadInt32("Field_18", indexes);
+            data.Id = packet.ReadInt32("Id", indexes);
             data.Type = packet.ReadBits("Type", 1, indexes);
             return data;
         }
 
         public static ConversationActor ReadUpdateConversationActor(Packet packet, IConversationActor existingData, params object[] indexes)
         {
+            packet.ResetBitReader();
+            packet.ResetBitReader();
+            uint creatureID = packet.ReadUInt32("CreatureID", indexes);
+            uint creatureDisplayInfoID = packet.ReadUInt32("CreatureDisplayInfoID", indexes);
+            WowGuid actorGUID = packet.ReadPackedGuid128("ActorGUID", indexes);
+            int id = packet.ReadInt32("Id", indexes);
+            uint type = packet.ReadBits("Type", 1, indexes);
+
             var data = existingData as ConversationActor;
             if (data == null)
+            {
                 data = new ConversationActor();
-            packet.ResetBitReader();
-            packet.ResetBitReader();
-            data.CreatureID = packet.ReadUInt32("CreatureID", indexes);
-            data.CreatureDisplayInfoID = packet.ReadUInt32("CreatureDisplayInfoID", indexes);
-            data.ActorGUID = packet.ReadPackedGuid128("ActorGUID", indexes);
-            data.Field_18 = packet.ReadInt32("Field_18", indexes);
-            data.Type = packet.ReadBits("Type", 1, indexes);
+                data.CreatureID = creatureID;
+                data.CreatureDisplayInfoID = creatureDisplayInfoID;
+                data.ActorGUID = actorGUID;
+                data.Id = id;
+                data.Type = type;
+            }
             return data;
         }
 
@@ -3537,7 +3547,7 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             var data = new ConversationData();
             data.Lines = new IConversationLine[packet.ReadUInt32()];
             data.LastLineEndTime = packet.ReadInt32("LastLineEndTime", indexes);
-            data.Field_1C = packet.ReadUInt32("Field_1C", indexes);
+            data.Progress = packet.ReadUInt32("Progress", indexes);
             for (var i = 0; i < data.Lines.Length; ++i)
             {
                 data.Lines[i] = ReadCreateConversationLine(packet, flags, indexes, "Lines", i);
@@ -3550,11 +3560,9 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
             return data;
         }
 
-        public override IConversationData ReadUpdateConversationData(Packet packet, IConversationData existingData, params object[] indexes)
+        public override IConversationData ReadUpdateConversationData(Packet packet, params object[] indexes)
         {
-            var data = existingData as ConversationData;
-            if (data == null)
-                data = new ConversationData();
+            var data = new ConversationData();
             var rawChangesMask = new int[1];
             rawChangesMask[0] = (int)packet.ReadBits(5);
             var changesMask = new BitArray(rawChangesMask);
@@ -3597,7 +3605,7 @@ namespace WowPacketParserModule.V8_0_1_27101.UpdateFields.V8_1_5_29683
                 }
                 if (changesMask[4])
                 {
-                    data.Field_1C = packet.ReadUInt32("Field_1C", indexes);
+                    data.Progress = packet.ReadUInt32("Progress", indexes);
                 }
             }
             return data;

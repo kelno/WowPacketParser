@@ -8,7 +8,7 @@ using WowPacketParser.Store.Objects.UpdateFields.LegacyImplementation;
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("conversation_template")]
-    public sealed class ConversationTemplate : WoWObject, IDataModel
+    public sealed record ConversationTemplate : WoWObject, IDataModel
     {
         [DBFieldName("Id", true)]
         public uint? Id;
@@ -16,7 +16,7 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("FirstLineID")]
         public uint? FirstLineID;
 
-        [DBFieldName("LastLineEndTime")]
+        [DBFieldName("LastLineEndTime", TargetedDatabase.Zero, TargetedDatabase.Shadowlands)]
         public uint? LastLineEndTime;
 
         [DBFieldName("TextureKitId", TargetedDatabase.BattleForAzeroth)]
@@ -43,11 +43,15 @@ namespace WowPacketParser.Store.Objects
             {
                 var actor = new ConversationActorTemplate
                 {
-                    Type = actors[i].Type
+                    Type = actors[i].Type,
+                    NoActorObject = actors[i].NoActorObject > 0
                 };
 
                 if (actor.Type == (uint)ActorType.WorldObjectActor)
+                {
+                    actor.Id = actors[i].Id;
                     actor.Guid = actors[i].ActorGUID;
+                }
                 else if (actor.Type == (uint)ActorType.CreatureActor)
                 {
                     actor.Id = actors[i].Id;
@@ -81,7 +85,11 @@ namespace WowPacketParser.Store.Objects
                     ConversationId = Id,
                     ConversationActorId = actorTemplate.Id,
                     Guid = actorTemplate.Guid,
-                    Idx = line.ActorIdx
+                    Idx = line.ActorIdx,
+                    CreatureId = actorTemplate.CreatureId,
+                    CreatureDisplayInfoId = actorTemplate.CreatureModelId,
+                    NoActorObject = actorTemplate.NoActorObject,
+                    ActivePlayerObject = actorTemplate.Guid != null && actorTemplate.Guid.Low == 0xFFFFFFFFFFFFFFFF && actorTemplate.Guid.GetHighType() == HighGuidType.Player
                 };
 
                 Storage.ConversationLineTemplates.Add(line);

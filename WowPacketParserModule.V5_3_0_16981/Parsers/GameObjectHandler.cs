@@ -27,8 +27,9 @@ namespace WowPacketParserModule.V5_3_0_16981.Parsers
             int unk1 = packet.ReadInt32("Unk1 UInt32");
             if (unk1 == 0)
             {
-                packet.ReadEntry("Entry");
+                var goEntry = packet.ReadEntry("Entry").Key;
                 packet.ReadByte("Unk1 Byte");
+                packet.Holder.QueryGameObjectResponse = new() { Entry = (uint)goEntry, HasData = false };
                 return;
             }
             gameObject.Type = packet.ReadInt32E<GameObjectType>("Type");
@@ -74,11 +75,25 @@ namespace WowPacketParserModule.V5_3_0_16981.Parsers
                 Name = gameObject.Name
             };
             Storage.ObjectNames.Add(objectName, packet.TimeSpan);
+            var query = packet.Holder.QueryGameObjectResponse = new() { Entry = (uint)entry.Key, HasData = true };
+            query.Type = (uint)gameObject.Type.Value;
+            query.Model = gameObject.DisplayID.Value;
+            query.Name = gameObject.Name;
+            query.IconName = gameObject.IconName;
+            query.CastCaption = gameObject.CastCaption;
+            query.Size = gameObject.Size.Value;
+            query.RequiredLevel = gameObject.RequiredLevel.Value;
+            foreach (var data in gameObject.Data)
+                query.Data.Add(data.Value);
+            foreach (var item in gameObject.QuestItems)
+                query.Items.Add(item.Value);
         }
 
         [Parser(Opcode.SMSG_GAME_OBJECT_CUSTOM_ANIM)]
         public static void HandleGOCustomAnim(Packet packet)
         {
+            var customAnim = packet.Holder.GameObjectCustomAnim = new();
+            
             var guid = new byte[8];
             packet.ReadBit("Unk bit");
             packet.StartBitStream(guid, 6, 3, 4);
@@ -88,10 +103,10 @@ namespace WowPacketParserModule.V5_3_0_16981.Parsers
 
             packet.ReadXORBytes(guid, 0, 2, 5, 7, 4, 3, 1);
             if (hasAnim)
-                packet.ReadInt32("Anim");
+                customAnim.Anim = packet.ReadInt32("Anim");
 
             packet.ReadXORByte(guid, 6);
-            packet.WriteGuid("GUID", guid);
+            customAnim.GameObject = packet.WriteGuid("GUID", guid);
         }
     }
 }

@@ -39,7 +39,7 @@ namespace WowPacketParser.Store.Objects.UpdateFields.LegacyImplementation
             }
         }
 
-        public int LastLineEndTime => UpdateFields.GetValue<ConversationField, int>(ConversationField.CONVERSATION_LAST_LINE_END_TIME);
+        public int? LastLineEndTime => UpdateFields.GetValue<ConversationField, int?>(ConversationField.CONVERSATION_LAST_LINE_END_TIME);
 
         public DynamicUpdateField<IConversationActor> Actors
         {
@@ -65,13 +65,12 @@ namespace WowPacketParser.Store.Objects.UpdateFields.LegacyImplementation
                     {
                         if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_0_1_27101))
                         {
-                            actor.Id = actors[i + 0];
                             actor.CreatureID = actors[i + 0];
                             actor.CreatureDisplayInfoID = actors[i + 1];
                         }
                         else
                         {
-                            actor.Id = actors[i + 0];
+                            actor.Id = (int)actors[i + 0];
                             actor.CreatureID = actors[i + 1];
                             actor.CreatureDisplayInfoID = actors[i + 2];
                         }
@@ -95,11 +94,12 @@ namespace WowPacketParser.Store.Objects.UpdateFields.LegacyImplementation
 
         public class Actor : IConversationActor
         {
-            public uint Id { get; set; }
+            public int Id { get; set; }
             public uint CreatureID { get; set; }
             public uint CreatureDisplayInfoID { get; set; }
             public WowGuid ActorGUID { get; set; }
             public uint Type { get; set; }
+            public uint NoActorObject { get; set; }
         }
     }
 }

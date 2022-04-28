@@ -1,11 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
 using WowPacketParser.Enums;
 using WowPacketParser.Misc;
+using WowPacketParser.PacketStructures;
 using WowPacketParser.Parsing;
+using WowPacketParser.Proto;
 using WowPacketParser.Store;
 using WowPacketParser.Store.Objects;
 using CoreParsers = WowPacketParser.Parsing.Parsers;
+using MovementFlag = WowPacketParser.Enums.v4.MovementFlag;
+using MovementFlag2 = WowPacketParser.Enums.v4.MovementFlag2;
 
 namespace WowPacketParserModule.V4_3_4_15595.Parsers
 {
@@ -15,70 +18,52 @@ namespace WowPacketParserModule.V4_3_4_15595.Parsers
         [Parser(Opcode.SMSG_UPDATE_OBJECT)]
         public static void HandleUpdateObject(Packet packet)
         {
-            uint map = packet.ReadUInt16("Map");
+            var updateObject = packet.Holder.UpdateObject = new();
+            uint map = updateObject.MapId = packet.ReadUInt16("Map");
             var count = packet.ReadUInt32("Count");
 
             for (var i = 0; i < count; i++)
             {
-                var type = packet.ReadByte();
-                var typeString = ((UpdateTypeCataclysm)type).ToString();
+                var type = (UpdateTypeCataclysm)packet.ReadByte();
 
-                packet.AddValue("UpdateType", typeString, i);
-                switch (typeString)
+                var partWriter = new StringBuilderProtoPart(packet.Writer);
+                packet.AddValue("UpdateType", type.ToString(), i);
+                switch (type)
                 {
-                    case "Values":
+                    case UpdateTypeCataclysm.Values:
                     {
                         var guid = packet.ReadPackedGuid("GUID", i);
-                        CoreParsers.UpdateHandler.ReadValuesUpdateBlock(packet, guid, i);
+                        var updateValues = new UpdateValues(){Legacy = new()};
+                        CoreParsers.UpdateHandler.ReadValuesUpdateBlock(packet, updateValues.Legacy, guid, i);
+                        updateObject.Updated.Add(new UpdateObject{Guid = guid, Values = updateValues, Text = partWriter.Text });
                         break;
                     }
-                    case "CreateObject1":
-                    case "CreateObject2":
+                    case UpdateTypeCataclysm.CreateObject1:
+                    case UpdateTypeCataclysm.CreateObject2:
                     {
                         var guid = packet.ReadPackedGuid("GUID", i);
-                        ReadCreateObjectBlock(packet, guid, map, i);
+                        var createObject = new CreateObject() { Guid = guid, Values = new(){Legacy = new()}, CreateType = type.ToCreateObjectType() };
+                        ReadCreateObjectBlock(packet, createObject, guid, map, i);
+                        createObject.Text = partWriter.Text;
+                        updateObject.Created.Add(createObject);
                         break;
                     }
-                    case "DestroyObjects":
+                    case UpdateTypeCataclysm.DestroyObjects:
                     {
-                        CoreParsers.UpdateHandler.ReadObjectsBlock(packet, i);
+                        CoreParsers.UpdateHandler.ReadDestroyObjectsBlock(packet, i);
                         break;
                     }
                 }
             }
         }
 
-        private static void ReadCreateObjectBlock(Packet packet, WowGuid guid, uint map, object index)
+        private static void ReadCreateObjectBlock(Packet packet, CreateObject createObject, WowGuid guid, uint map, object index)
         {
             ObjectType objType = ObjectTypeConverter.Convert(packet.ReadByteE<ObjectTypeLegacy>("Object Type", index));
-            var moves = ReadMovementUpdateBlock434(packet, guid, index);
-            var updates = CoreParsers.UpdateHandler.ReadValuesUpdateBlockOnCreate(packet, objType, index);
+            WoWObject obj = CoreParsers.UpdateHandler.CreateObject(objType, guid, map);
 
-            WoWObject obj;
-            switch (objType)
-            {
-                case ObjectType.Unit:
-                    obj = new Unit();
-                    break;
-                case ObjectType.GameObject:
-                    obj = new GameObject();
-                    break;
-                case ObjectType.Player:
-                    obj = new Player();
-                    break;
-                default:
-                    obj = new WoWObject();
-                    break;
-            }
-
-            obj.Type = objType;
-            obj.Movement = moves;
-            obj.UpdateFields = updates;
-            obj.Map = map;
-            obj.Area = CoreParsers.WorldStateHandler.CurrentAreaId;
-            obj.Zone = CoreParsers.WorldStateHandler.CurrentZoneId;
-            obj.PhaseMask = (uint)CoreParsers.MovementHandler.CurrentPhaseMask;
-            obj.Phases = new HashSet<ushort>(CoreParsers.MovementHandler.ActivePhases.Keys);
+            obj.Movement = ReadMovementUpdateBlock434(packet, guid, index);
+            obj.UpdateFields = CoreParsers.UpdateHandler.ReadValuesUpdateBlockOnCreate(packet, createObject.Values.Legacy, objType, index);
 
             // If this is the second time we see the same object (same guid,
             // same position) update its phasemask
@@ -114,7 +99,7 @@ namespace WowPacketParserModule.V4_3_4_15595.Parsers
             packet.ReadBit();
             var hasGameObjectPosition = packet.ReadBit("Has GameObject Position", index);
             var hasStationaryPosition = packet.ReadBit("Has Stationary Position", index);
-            var bit456 = packet.ReadBit();
+            var hasAreaTrigger = packet.ReadBit();
             /*var bit2 =*/
             packet.ReadBit();
             var transport = packet.ReadBit("Transport", index);
@@ -151,7 +136,7 @@ namespace WowPacketParserModule.V4_3_4_15595.Parsers
                 guid2[3] = packet.ReadBit();
                 guid2[2] = packet.ReadBit();
                 if (hasMovementFlags)
-                    moveInfo.Flags = (MovementFlag)packet.ReadBitsE<Enums.MovementFlag>("Movement Flags", 30, index);
+                    moveInfo.Flags = (uint)packet.ReadBitsE<MovementFlag>("Movement Flags", 30, index);
 
                 packet.ReadBit("Has MovementInfo spline", index);
                 hasPitch = !packet.ReadBit("Lacks pitch", index);
@@ -220,7 +205,7 @@ namespace WowPacketParserModule.V4_3_4_15595.Parsers
                 guid2[1] = packet.ReadBit();
                 packet.ReadBit();
                 if (!packet.ReadBit())
-                    moveInfo.FlagsExtra = packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 12, index);
+                    moveInfo.Flags2 = (uint)packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 12, index);
             }
 
             if (hasGameObjectPosition)
@@ -338,19 +323,21 @@ namespace WowPacketParserModule.V4_3_4_15595.Parsers
 
                 if (hasTransportData)
                 {
+                    moveInfo.Transport = new MovementInfo.TransportInfo();
+
                     packet.ReadXORByte(transportGuid, 5);
                     packet.ReadXORByte(transportGuid, 7);
 
                     packet.ReadUInt32("Transport Time", index);
-                    moveInfo.TransportOffset.O = packet.ReadSingle();
+                    moveInfo.Transport.Offset.O = packet.ReadSingle();
                     if (hasTransportTime2)
                         packet.ReadUInt32("Transport Time 2", index);
 
-                    moveInfo.TransportOffset.Y = packet.ReadSingle();
-                    moveInfo.TransportOffset.X = packet.ReadSingle();
+                    moveInfo.Transport.Offset.Y = packet.ReadSingle();
+                    moveInfo.Transport.Offset.X = packet.ReadSingle();
                     packet.ReadXORByte(transportGuid, 3);
 
-                    moveInfo.TransportOffset.Z = packet.ReadSingle();
+                    moveInfo.Transport.Offset.Z = packet.ReadSingle();
                     packet.ReadXORByte(transportGuid, 0);
 
                     if (hasTransportTime3)
@@ -361,16 +348,16 @@ namespace WowPacketParserModule.V4_3_4_15595.Parsers
                     packet.ReadXORByte(transportGuid, 6);
                     packet.ReadXORByte(transportGuid, 2);
                     packet.ReadXORByte(transportGuid, 4);
-                    moveInfo.TransportGuid = new WowGuid64(BitConverter.ToUInt64(transportGuid, 0));
-                    packet.AddValue("Transport GUID", moveInfo.TransportGuid, index);
-                    packet.AddValue("Transport Position", moveInfo.TransportOffset, index);
+                    moveInfo.Transport.Guid = new WowGuid64(BitConverter.ToUInt64(transportGuid, 0));
+                    packet.AddValue("Transport GUID", moveInfo.Transport.Guid, index);
+                    packet.AddValue("Transport Position", moveInfo.Transport.Offset, index);
 
-                    if (moveInfo.TransportGuid.HasEntry() && moveInfo.TransportGuid.GetHighType() == HighGuidType.Vehicle &&
+                    if (moveInfo.Transport.Guid.HasEntry() && moveInfo.Transport.Guid.GetHighType() == HighGuidType.Vehicle &&
                         guid.HasEntry() && guid.GetHighType() == HighGuidType.Creature)
                     {
                         VehicleTemplateAccessory vehicleAccessory = new VehicleTemplateAccessory
                         {
-                            Entry = moveInfo.TransportGuid.GetEntry(),
+                            Entry = moveInfo.Transport.Guid.GetEntry(),
                             AccessoryEntry = guid.GetEntry(),
                             SeatId = seat
                         };
@@ -419,6 +406,8 @@ namespace WowPacketParserModule.V4_3_4_15595.Parsers
 
             if (hasGameObjectPosition)
             {
+                moveInfo.Transport = new MovementInfo.TransportInfo();
+
                 packet.ReadXORByte(goTransportGuid, 0);
                 packet.ReadXORByte(goTransportGuid, 5);
                 if (hasGOTransportTime3)
@@ -426,35 +415,42 @@ namespace WowPacketParserModule.V4_3_4_15595.Parsers
 
                 packet.ReadXORByte(goTransportGuid, 3);
 
-                moveInfo.TransportOffset.X = packet.ReadSingle();
+                moveInfo.Transport.Offset.X = packet.ReadSingle();
                 packet.ReadXORByte(goTransportGuid, 4);
                 packet.ReadXORByte(goTransportGuid, 6);
                 packet.ReadXORByte(goTransportGuid, 1);
 
                 packet.ReadSingle("GO Transport Time", index);
-                moveInfo.TransportOffset.Y = packet.ReadSingle();
+                moveInfo.Transport.Offset.Y = packet.ReadSingle();
                 packet.ReadXORByte(goTransportGuid, 2);
                 packet.ReadXORByte(goTransportGuid, 7);
 
-                moveInfo.TransportOffset.Z = packet.ReadSingle();
+                moveInfo.Transport.Offset.Z = packet.ReadSingle();
                 packet.ReadByte("GO Transport Seat", index);
-                moveInfo.TransportOffset.O = packet.ReadSingle();
+                moveInfo.Transport.Offset.O = packet.ReadSingle();
                 if (hasGOTransportTime2)
                     packet.ReadUInt32("GO Transport Time 2", index);
 
-                moveInfo.TransportGuid = new WowGuid64(BitConverter.ToUInt64(goTransportGuid, 0));
-                packet.AddValue("GO Transport GUID", moveInfo.TransportGuid, index);
-                packet.AddValue("GO Transport Position", moveInfo.TransportOffset, index);
+                moveInfo.Transport.Guid = new WowGuid64(BitConverter.ToUInt64(goTransportGuid, 0));
+                packet.AddValue("GO Transport GUID", moveInfo.Transport.Guid, index);
+                packet.AddValue("GO Transport Position", moveInfo.Transport.Offset, index);
             }
 
             if (hasGameObjectRotation)
                 moveInfo.Rotation = packet.ReadPackedQuaternion("GameObject Rotation", index);
 
-            if (bit456)
+            if (hasAreaTrigger)
             {
                 // float[] arr = new float[16];
                 // ordering: 13, 4, 7, 15, BYTE, 10, 11, 3, 5, 14, 6, 1, 8, 12, 0, 2, 9
-                packet.ReadBytes(4 * 16 + 1);
+                var arr = new float[16];
+                var sequence = new int[] { 13, 4, 7, 15, 10, 11, 3, 5, 14, 6, 1, 8, 12, 0, 2, 9 };
+                foreach (var idx in sequence)
+                {
+                    arr[idx] = packet.ReadSingle($"AreaTrigger Data[{idx}]");
+                    if (idx == 15)
+                        packet.ReadByte("AreaTrigger Byte");
+                }
             }
 
             if (hasStationaryPosition)

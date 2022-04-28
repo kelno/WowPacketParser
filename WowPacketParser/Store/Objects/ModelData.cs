@@ -5,7 +5,7 @@ using WowPacketParser.SQL;
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("creature_model_info")]
-    public sealed class ModelData : IDataModel
+    public sealed record ModelData : IDataModel
     {
         [DBFieldName("DisplayID", true)]
         public uint? DisplayID;
@@ -16,7 +16,7 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("CombatReach")]
         public float? CombatReach;
 
-        [DBFieldName("Gender", TargetedDatabase.Zero, TargetedDatabase.WarlordsOfDraenor)]
+        [DBFieldName("Gender", TargetedDatabase.Classic, TargetedDatabase.WarlordsOfDraenor)]
         public Gender? Gender;
 
         [DBFieldName("DisplayID_Other_Gender")]

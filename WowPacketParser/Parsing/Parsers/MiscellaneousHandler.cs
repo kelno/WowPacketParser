@@ -1,8 +1,8 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 using WowPacketParser.Enums;
-using WowPacketParser.Enums.Version;
 using WowPacketParser.Misc;
+using WowPacketParser.Proto;
 using WowPacketParser.Store;
 using WowPacketParser.Store.Objects;
 
@@ -129,10 +129,8 @@ namespace WowPacketParser.Parsing.Parsers
 
             if (ClientVersion.AddedInVersion(ClientType.Cataclysm))
             {
-                packet.ReadToEnd();
-                throw new NotImplementedException("This opcode heavily relies on ALL" +
-                                                  "of its contained packets to be parsed successfully");
-                // Some sort of infinite loop happens here...
+                HandleMultiplePackets(packet);
+                return;
             }
 
             packet.WriteLine("{");
@@ -394,21 +392,46 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.SMSG_TRIGGER_MOVIE)]
         public static void HandleTriggerSequence(Packet packet)
         {
-            packet.ReadInt32("Sequence Id");
+            packet.ReadInt32("CinematicID");
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V9_1_5_40772))
+                packet.ReadPackedGuid128("ConversationGuid");
         }
 
         [Parser(Opcode.SMSG_PLAY_SOUND)]
-        [Parser(Opcode.SMSG_PLAY_MUSIC)]
-        [Parser(Opcode.SMSG_PLAY_OBJECT_SOUND)]
         public static void HandleSoundMessages(Packet packet)
         {
-            uint sound = packet.ReadUInt32("Sound Id");
+            PacketPlaySound packetPlaySound = packet.Holder.PlaySound = new PacketPlaySound();
+            uint sound = packetPlaySound.Sound = packet.ReadUInt32("Sound Id");
+            packetPlaySound.Source = new UniversalGuid() {Guid64 = new UniversalGuid64()};
 
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_0_15005))
-                packet.ReadGuid("GUID");
+                packetPlaySound.Source = packet.ReadGuid("GUID").ToUniversalGuid();
 
-            if (packet.Opcode == Opcodes.GetOpcode(Opcode.SMSG_PLAY_OBJECT_SOUND, Direction.ServerToClient))
-                packet.ReadGuid("GUID 2");
+            Storage.Sounds.Add(sound, packet.TimeSpan);
+        }
+
+        [Parser(Opcode.SMSG_PLAY_OBJECT_SOUND)]
+        public static void HandleObjectSoundMessages(Packet packet)
+        {
+            PacketPlayObjectSound packetSound = packet.Holder.PlayObjectSound = new PacketPlayObjectSound();
+            uint sound = packetSound.Sound = packet.ReadUInt32("Sound Id");
+
+            packetSound.Source = packet.ReadGuid("GUID");
+
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_0_15005))
+                packetSound.Target = packet.ReadGuid("GUID 2");
+
+            Storage.Sounds.Add(sound, packet.TimeSpan);
+        }
+
+        [Parser(Opcode.SMSG_PLAY_MUSIC)]
+        public static void HandleMusicMessages(Packet packet)
+        {
+            PacketPlayMusic packetMusic = packet.Holder.PlayMusic = new PacketPlayMusic();
+            uint sound = packetMusic.Music = packet.ReadUInt32("Sound Id");
+
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_0_15005))
+                packetMusic.Target = packet.ReadGuid("GUID").ToUniversalGuid();
 
             Storage.Sounds.Add(sound, packet.TimeSpan);
         }
@@ -451,6 +474,7 @@ namespace WowPacketParser.Parsing.Parsers
                 packet.ReadByte("Unk Byte");
 
             packet.AddSniffData(StoreNameType.AreaTrigger, entry.Key, "AREATRIGGER");
+            packet.Holder.ClientAreaTrigger = new() { Enter = true, AreaTrigger = (uint)entry.Key };
         }
 
         [Parser(Opcode.SMSG_PRE_RESSURECT)]
@@ -827,6 +851,7 @@ namespace WowPacketParser.Parsing.Parsers
         public static void HandleSpellClick(Packet packet)
         {
             WowGuid guid = packet.ReadGuid("GUID");
+            packet.Holder.SpellClick = new() { Target = guid };
 
             if (guid.GetObjectType() == ObjectType.Unit)
                 Storage.NpcSpellClicks.Add(guid, packet.TimeSpan);
@@ -915,13 +940,13 @@ namespace WowPacketParser.Parsing.Parsers
             }
 
             if (hasMovementFlags)
-                packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
+                packet.ReadBitsE<Enums.v4.MovementFlag>("Movement Flags", 30);
 
             if (hasFallData)
                 hasFallDirection = packet.ReadBit();
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 12);
+                packet.ReadBitsE<Enums.v4.MovementFlag2>("Extra Movement Flags", 12);
 
             packet.ReadXORByte(guid, 5);
             packet.ReadXORByte(guid, 3);
@@ -1085,10 +1110,24 @@ namespace WowPacketParser.Parsing.Parsers
         }
 
         [Parser(Opcode.SMSG_PLAY_ONE_SHOT_ANIM_KIT)]
+        public static void HandlePlayOneShotAnimKit(Packet packet)
+        {
+            var animKit = packet.Holder.OneShotAnimKit = new();
+            animKit.Unit = packet.ReadPackedGuid("Guid");
+            animKit.AnimKit = packet.ReadUInt16("AnimKit.dbc Id");
+        }
+
         [Parser(Opcode.SMSG_SET_AI_ANIM_KIT)]
+        public static void HandleSetAiAnimKit(Packet packet)
+        {
+            var animKit = packet.Holder.SetAnimKit = new();
+            animKit.Unit = packet.ReadPackedGuid("Guid");
+            animKit.AnimKit = packet.ReadUInt16("AnimKit.dbc Id");
+        }
+
         [Parser(Opcode.SMSG_SET_MELEE_ANIM_KIT)]
         [Parser(Opcode.SMSG_SET_MOVEMENT_ANIM_KIT)]
-        public static void HandlePlayOneShotAnimKit(Packet packet)
+        public static void HandleMeleeAnimKit(Packet packet)
         {
             packet.ReadPackedGuid("Guid");
             packet.ReadUInt16("AnimKit.dbc Id");
@@ -1100,6 +1139,7 @@ namespace WowPacketParser.Parsing.Parsers
             packet.ReadInt32("TimerType");
         }
 
+        [Parser(Opcode.SMSG_RECRUIT_A_FRIEND_FAILURE)]
         [Parser(Opcode.SMSG_REFER_A_FRIEND_FAILURE)]
         public static void HandleRaFFailure(Packet packet)
         {
@@ -1116,6 +1156,7 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.MSG_MOVE_WORLDPORT_ACK)]
         [Parser(Opcode.CMSG_QUERY_TIME)]
         [Parser(Opcode.CMSG_UI_TIME_REQUEST)]
+        [Parser(Opcode.CMSG_SERVER_TIME_OFFSET_REQUEST)]
         [Parser(Opcode.SMSG_COMSAT_CONNECT_FAIL)]
         [Parser(Opcode.SMSG_COMSAT_RECONNECT_TRY)]
         [Parser(Opcode.SMSG_COMSAT_DISCONNECT)]

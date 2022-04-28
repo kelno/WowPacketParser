@@ -1,9 +1,10 @@
-﻿using WowPacketParser.Misc;
+﻿using WowPacketParser.Enums;
+using WowPacketParser.Misc;
 using WowPacketParser.SQL;
 
 namespace WowPacketParser.Store.Objects
 {
-    public sealed class NpcVendor : IDataModel
+    public sealed record NpcVendor : IDataModel
     {
         [DBFieldName("entry", true)]
         public uint? Entry;
@@ -23,10 +24,10 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("type", true)]
         public uint? Type;
 
-        [DBFieldName("PlayerConditionID")]
+        [DBFieldName("PlayerConditionID", TargetedDatabase.Cataclysm)]
         public uint? PlayerConditionID;
 
-        [DBFieldName("IgnoreFiltering")]
+        [DBFieldName("IgnoreFiltering", TargetedDatabase.WarlordsOfDraenor)]
         public bool? IgnoreFiltering;
 
         [DBFieldName("VerifiedBuild")]

@@ -5,7 +5,7 @@ using WowPacketParser.SQL;
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("quest_poi")]
-    public sealed class QuestPOI : IDataModel
+    public sealed record QuestPOI : IDataModel
     {
         [DBFieldName("QuestID", true)]
         public int? QuestID;
@@ -50,11 +50,14 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("PlayerConditionID", TargetedDatabase.WarlordsOfDraenor)]
         public int? PlayerConditionID;
 
+        [DBFieldName("NavigationPlayerConditionID", TargetedDatabase.Shadowlands)]
+        public int? NavigationPlayerConditionID;
+
         [DBFieldName("SpawnTrackingID", TargetedDatabase.WarlordsOfDraenor)]
         public int? SpawnTrackingID;
 
         [DBFieldName("AlwaysAllowMergingBlobs", TargetedDatabase.Legion)]
-        public bool AlwaysAllowMergingBlobs;
+        public bool? AlwaysAllowMergingBlobs;
 
         [DBFieldName("VerifiedBuild")]
         public int? VerifiedBuild = ClientVersion.BuildInt;

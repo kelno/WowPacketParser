@@ -16,7 +16,7 @@ namespace WowPacketParserModule.V5_4_1_17538.Parsers
             var guid = packet.StartBitStream(6, 7, 1, 5, 2, 4, 3, 0);
             packet.ParseBitStream(guid, 7, 6, 0, 1, 4, 3, 2, 5);
             CoreParsers.SessionHandler.LoginGuid = new WowGuid64(BitConverter.ToUInt64(guid, 0));
-            packet.WriteGuid("Guid", guid);
+            packet.Holder.PlayerLogin = new() { PlayerGuid = packet.WriteGuid("Guid", guid) };
         }
 
         [Parser(Opcode.SMSG_AUTH_CHALLENGE)]
@@ -78,7 +78,7 @@ namespace WowPacketParserModule.V5_4_1_17538.Parsers
             packet.ReadBit("Unk bit");
             packet.ResetBitReader();
             packet.ReadBytesString("Account name", size);
-            packet.AddValue("Proof SHA-1 Hash", Utilities.ByteArrayToHexString(sha));
+            packet.AddValue("Proof SHA-1 Hash", Convert.ToHexString(sha));
         }
 
         [Parser(Opcode.SMSG_MOTD)]

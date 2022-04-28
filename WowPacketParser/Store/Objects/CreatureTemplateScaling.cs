@@ -1,18 +1,22 @@
+using WowPacketParser.Enums;
 using WowPacketParser.Misc;
 using WowPacketParser.SQL;
 
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("creature_template_scaling")]
-    public sealed class CreatureTemplateScaling : IDataModel
+    public sealed record CreatureTemplateScaling : IDataModel
     {
         [DBFieldName("Entry", true)]
         public uint? Entry;
 
-        [DBFieldName("LevelScalingMin")]
+        [DBFieldName("DifficultyID", true)]
+        public uint? DifficultyID;
+
+        [DBFieldName("LevelScalingMin", TargetedDatabase.Legion, TargetedDatabase.Shadowlands)]
         public uint? LevelScalingMin;
 
-        [DBFieldName("LevelScalingMax")]
+        [DBFieldName("LevelScalingMax", TargetedDatabase.Legion, TargetedDatabase.Shadowlands)]
         public uint? LevelScalingMax;
 
         [DBFieldName("LevelScalingDeltaMin")]
@@ -20,6 +24,10 @@ namespace WowPacketParser.Store.Objects
 
         [DBFieldName("LevelScalingDeltaMax")]
         public int? LevelScalingDeltaMax;
+
+        [DBFieldName("SandboxScalingID", TargetedDatabase.Legion, TargetedDatabase.BattleForAzeroth)]
+        [DBFieldName("ContentTuningID", TargetedDatabase.BattleForAzeroth)]
+        public int? ContentTuningID;
 
         [DBFieldName("VerifiedBuild")]
         public int? VerifiedBuild = ClientVersion.BuildInt;

@@ -8,17 +8,24 @@ namespace WowPacketParserModule.V6_0_2_19033.Parsers
     {
         public static void ReadBattlefieldStatus_Header(Packet packet, params object[] indexes)
         {
-            LfgHandler.ReadCliRideTicket(packet);
+            LfgHandler.ReadCliRideTicket(packet, indexes);
 
-            packet.ReadInt64("QueueID");
-            packet.ReadByte("RangeMin");
-            packet.ReadByte("RangeMax");
-            packet.ReadByte("TeamSize");
-            packet.ReadInt32("InstanceID");
+            var queueIdCount = 0u;
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_2_5_31921))
+                queueIdCount = packet.ReadUInt32();
+            else
+                packet.ReadUInt64("QueueID", indexes);
+
+            packet.ReadByte("RangeMin", indexes);
+            packet.ReadByte("RangeMax", indexes);
+            packet.ReadByte("TeamSize", indexes);
+            packet.ReadInt32("InstanceID", indexes);
+            for (var i = 0u; i < queueIdCount; ++i)
+                packet.ReadUInt64("QueueID", indexes, i);
 
             packet.ResetBitReader();
-            packet.ReadBit("RegisteredMatch");
-            packet.ReadBit("TournamentRules");
+            packet.ReadBit("RegisteredMatch", indexes);
+            packet.ReadBit("TournamentRules", indexes);
         }
 
         [Parser(Opcode.CMSG_REQUEST_BATTLEFIELD_STATUS)]
@@ -293,11 +300,13 @@ namespace WowPacketParserModule.V6_0_2_19033.Parsers
             ReadBattlefieldStatus_Header(packet);
             packet.ReadInt32("AverageWaitTime");
             packet.ReadInt32("WaitTime");
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V9_2_0_42423))
+                packet.ReadInt32("Unused920");
 
             packet.ResetBitReader();
 
-            packet.ReadBit("AsGroup");                  
-            packet.ReadBit("EligibleForMatchmaking");   
+            packet.ReadBit("AsGroup");
+            packet.ReadBit("EligibleForMatchmaking");
             packet.ReadBit("SuspendedQueue");
         }
 

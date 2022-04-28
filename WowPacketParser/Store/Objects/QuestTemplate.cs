@@ -5,7 +5,7 @@ using WowPacketParser.SQL;
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("quest_template")]
-    public sealed class QuestTemplate : IDataModel
+    public sealed record QuestTemplate : IDataModel
     {
         [DBFieldName("ID", true)]
         public uint? ID;
@@ -13,19 +13,22 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("QuestType")]
         public QuestType? QuestType;
 
-        [DBFieldName("QuestLevel")]
+        [DBFieldName("QuestLevel", TargetedDatabase.Zero, TargetedDatabase.Shadowlands)]
         public int? QuestLevel;
 
-        [DBFieldName("ScalingFactionGroup", TargetedDatabase.BattleForAzeroth)]
+        [DBFieldName("ScalingFactionGroup", TargetedDatabase.BattleForAzeroth, TargetedDatabase.Shadowlands)]
         public int? QuestScalingFactionGroup;
 
-        [DBFieldName("MaxScalingLevel", TargetedDatabase.Legion)]
+        [DBFieldName("MaxScalingLevel", TargetedDatabase.Legion, TargetedDatabase.Shadowlands)]
         public int? QuestMaxScalingLevel;
 
         [DBFieldName("QuestPackageID", TargetedDatabase.WarlordsOfDraenor)]
         public uint? QuestPackageID;
 
-        [DBFieldName("MinLevel")]
+        [DBFieldName("ContentTuningID", TargetedDatabase.Shadowlands)]
+        public int? ContentTuningID;
+
+        [DBFieldName("MinLevel", TargetedDatabase.Zero, TargetedDatabase.Shadowlands)]
         public int? MinLevel;
 
         [DBFieldName("MaxLevel", TargetedDatabase.Cataclysm, TargetedDatabase.WarlordsOfDraenor)]
@@ -64,7 +67,7 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("RewardXPMultiplier", TargetedDatabase.WarlordsOfDraenor)]
         public float? RewardXPMultiplier;
 
-        [DBFieldName("RewardMoney")]
+        [DBFieldName("RewardMoney", TargetedDatabase.Zero, TargetedDatabase.Shadowlands)]
         public int? RewardMoney;
 
         [DBFieldName("RewardMoneyDifficulty", TargetedDatabase.WarlordsOfDraenor)]
@@ -79,7 +82,7 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("RewardDisplaySpell", TargetedDatabase.Zero, TargetedDatabase.WarlordsOfDraenor)]
         public uint? RewardDisplaySpell;
 
-        [DBFieldName("RewardDisplaySpell", TargetedDatabase.Legion, 3)]
+        [DBFieldName("RewardDisplaySpell", TargetedDatabase.Legion, TargetedDatabase.Shadowlands, 3)]
         public uint?[] RewardDisplaySpellLegion;
 
         [DBFieldName("RewardSpell", TargetedDatabase.Zero, TargetedDatabase.Cataclysm)]
@@ -175,6 +178,9 @@ namespace WowPacketParser.Store.Objects
 
         [DBFieldName("PortraitGiverMount", TargetedDatabase.BattleForAzeroth)]
         public uint? PortraitGiverMount;
+
+        [DBFieldName("PortraitGiverModelSceneID", TargetedDatabase.Shadowlands)]
+        public int? PortraitGiverModelSceneID;
 
         [DBFieldName("QuestTurnInPortrait", TargetedDatabase.Cataclysm, TargetedDatabase.WarlordsOfDraenor)]
         [DBFieldName("PortraitTurnIn", TargetedDatabase.WarlordsOfDraenor)]

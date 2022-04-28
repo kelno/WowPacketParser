@@ -5,7 +5,7 @@ using WowPacketParser.SQL;
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("playerchoice")]
-    public sealed class PlayerChoiceTemplate : IDataModel
+    public sealed record PlayerChoiceTemplate : IDataModel
     {
         [DBFieldName("ChoiceId", true)]
         public int? ChoiceId;
@@ -16,8 +16,17 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("SoundKitId", TargetedDatabase.BattleForAzeroth)]
         public uint? SoundKitId;
 
+        [DBFieldName("CloseSoundKitId", TargetedDatabase.Shadowlands)]
+        public uint? CloseSoundKitId;
+
+        [DBFieldName("Duration", TargetedDatabase.Shadowlands)]
+        public long? Duration;
+
         [DBFieldName("Question")]
         public string Question;
+
+        [DBFieldName("PendingChoiceText", TargetedDatabase.Shadowlands)]
+        public string PendingChoiceText;
 
         [DBFieldName("HideWarboardHeader", TargetedDatabase.Legion)]
         public int HideWarboardHeader;
@@ -30,13 +39,16 @@ namespace WowPacketParser.Store.Objects
     }
 
     [DBTableName("playerchoice_response")]
-    public sealed class PlayerChoiceResponseTemplate : IDataModel
+    public sealed record PlayerChoiceResponseTemplate : IDataModel
     {
         [DBFieldName("ChoiceId", true)]
         public int? ChoiceId;
 
         [DBFieldName("ResponseId", true)]
         public int? ResponseId;
+
+        [DBFieldName("ResponseIdentifier", TargetedDatabase.Shadowlands)]
+        public short? ResponseIdentifier;
 
         [DBFieldName("Index", true)]
         public uint? Index;
@@ -80,12 +92,15 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("RewardQuestID", TargetedDatabase.BattleForAzeroth)]
         public uint? RewardQuestID;
 
+        [DBFieldName("UiTextureKitID", TargetedDatabase.Shadowlands)]
+        public uint? UiTextureKitID;
+
         [DBFieldName("VerifiedBuild")]
         public int? VerifiedBuild = ClientVersion.BuildInt;
     }
 
     [DBTableName("playerchoice_response_reward")]
-    public sealed class PlayerChoiceResponseRewardTemplate : IDataModel
+    public sealed record PlayerChoiceResponseRewardTemplate : IDataModel
     {
         [DBFieldName("ChoiceId", true)]
         public int? ChoiceId;
@@ -122,7 +137,7 @@ namespace WowPacketParser.Store.Objects
     }
 
     [DBTableName("playerchoice_response_reward_currency")]
-    public sealed class PlayerChoiceResponseRewardCurrencyTemplate : IDataModel
+    public sealed record PlayerChoiceResponseRewardCurrencyTemplate : IDataModel
     {
         [DBFieldName("ChoiceId", true)]
         public int? ChoiceId;
@@ -144,7 +159,7 @@ namespace WowPacketParser.Store.Objects
     }
 
     [DBTableName("playerchoice_response_reward_faction")]
-    public sealed class PlayerChoiceResponseRewardFactionTemplate : IDataModel
+    public sealed record PlayerChoiceResponseRewardFactionTemplate : IDataModel
     {
         [DBFieldName("ChoiceId", true)]
         public int? ChoiceId;
@@ -166,7 +181,7 @@ namespace WowPacketParser.Store.Objects
     }
 
     [DBTableName("playerchoice_response_reward_item")]
-    public sealed class PlayerChoiceResponseRewardItemTemplate : IDataModel
+    public sealed record PlayerChoiceResponseRewardItemTemplate : IDataModel
     {
         [DBFieldName("ChoiceId", true)]
         public int? ChoiceId;

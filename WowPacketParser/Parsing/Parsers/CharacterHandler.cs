@@ -175,7 +175,7 @@ namespace WowPacketParser.Parsing.Parsers
                     Storage.StartPositions.Add(startPos, packet.TimeSpan);
                 }
 
-                var playerInfo = new Player {Race = race, Class = klass, Name = name, FirstLogin = firstLogin, Level = level};
+                var playerInfo = new Player {Race = race, Class = klass, Name = name, FirstLogin = firstLogin, Level = level, Type = ObjectType.Player};
 
                 if (Storage.Objects.ContainsKey(guid))
                     Storage.Objects[guid] = new Tuple<WoWObject, TimeSpan?>(playerInfo, packet.TimeSpan);
@@ -307,7 +307,7 @@ namespace WowPacketParser.Parsing.Parsers
                     Storage.StartPositions.Add(startPos, packet.TimeSpan);
                 }
 
-                var playerInfo = new Player { Race = race, Class = klass, Name = name, FirstLogin = firstLogin[c], Level = level };
+                var playerInfo = new Player { Race = race, Class = klass, Name = name, FirstLogin = firstLogin[c], Level = level, Type = ObjectType.Player };
                 if (Storage.Objects.ContainsKey(guidPlayer))
                     Storage.Objects[guidPlayer] = new Tuple<WoWObject, TimeSpan?>(playerInfo, packet.TimeSpan);
                 else
@@ -430,7 +430,7 @@ namespace WowPacketParser.Parsing.Parsers
                     Storage.StartPositions.Add(startPos, packet.TimeSpan);
                 }
 
-                var playerInfo = new Player{Race = race, Class = klass, Name = name, FirstLogin = firstLogins[c], Level = level};
+                var playerInfo = new Player{Race = race, Class = klass, Name = name, FirstLogin = firstLogins[c], Level = level, Type = ObjectType.Player };
                 if (Storage.Objects.ContainsKey(playerGuid))
                     Storage.Objects[playerGuid] = new Tuple<WoWObject, TimeSpan?>(playerInfo, packet.TimeSpan);
                 else
@@ -593,7 +593,7 @@ namespace WowPacketParser.Parsing.Parsers
                     Storage.StartPositions.Add(startPos, packet.TimeSpan);
                 }
 
-                var playerInfo = new Player { Race = race, Class = klass, Name = name, FirstLogin = firstLogins[c], Level = level };
+                var playerInfo = new Player { Race = race, Class = klass, Name = name, FirstLogin = firstLogins[c], Level = level, Type = ObjectType.Player };
                 if (Storage.Objects.ContainsKey(playerGuid))
                     Storage.Objects[playerGuid] = new Tuple<WoWObject, TimeSpan?>(playerInfo, packet.TimeSpan);
                 else
@@ -735,7 +735,7 @@ namespace WowPacketParser.Parsing.Parsers
                     Storage.StartPositions.Add(startPos, packet.TimeSpan);
                 }
 
-                var playerInfo = new Player { Race = race, Class = klass, Name = name, FirstLogin = firstLogins[c], Level = level };
+                var playerInfo = new Player { Race = race, Class = klass, Name = name, FirstLogin = firstLogins[c], Level = level, Type = ObjectType.Player };
                 if (Storage.Objects.ContainsKey(playerGuid))
                     Storage.Objects[playerGuid] = new Tuple<WoWObject, TimeSpan?>(playerInfo, packet.TimeSpan);
                 else
@@ -879,7 +879,7 @@ namespace WowPacketParser.Parsing.Parsers
                     Storage.StartPositions.Add(startPos, packet.TimeSpan);
                 }
 
-                var playerInfo = new Player { Race = race, Class = klass, Name = name, FirstLogin = firstLogins[c], Level = level };
+                var playerInfo = new Player { Race = race, Class = klass, Name = name, FirstLogin = firstLogins[c], Level = level, Type = ObjectType.Player };
                 if (Storage.Objects.ContainsKey(playerGuid))
                     Storage.Objects[playerGuid] = new Tuple<WoWObject, TimeSpan?>(playerInfo, packet.TimeSpan);
                 else
@@ -988,7 +988,7 @@ namespace WowPacketParser.Parsing.Parsers
                     Storage.StartPositions.Add(startPos, packet.TimeSpan);
                 }
 
-                var playerInfo = new Player { Race = race, Class = klass, Name = name, FirstLogin = firstLogins[c], Level = level };
+                var playerInfo = new Player { Race = race, Class = klass, Name = name, FirstLogin = firstLogins[c], Level = level, Type = ObjectType.Player };
                 if (Storage.Objects.ContainsKey(playerGuid))
                     Storage.Objects[playerGuid] = new Tuple<WoWObject, TimeSpan?>(playerInfo, packet.TimeSpan);
                 else
@@ -1053,17 +1053,17 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.SMSG_LOG_XP_GAIN)]
         public static void HandleLogXPGain(Packet packet)
         {
-            packet.ReadGuid("GUID");
-            packet.ReadUInt32("Total XP");
-            var type = packet.ReadByte("XP type"); // Need enum
+            packet.ReadGuid("VictimGUID");
+            packet.ReadUInt32("Original");
+            var type = packet.ReadByteE<PlayerLogXPReason>("Reason");
 
-            if (type == 0) // kill
+            if (type == PlayerLogXPReason.Kill)
             {
-                packet.ReadUInt32("Base XP");
-                packet.ReadSingle("Group rate (unk)");
+                packet.ReadUInt32("Amount");
+                packet.ReadSingle("GroupBonus");
             }
 
-            packet.ReadBool("RAF Bonus");
+            packet.ReadByteE<ReferAFriendBonusType>("ReferAFriendBonusType");
         }
 
         [Parser(Opcode.SMSG_TITLE_EARNED)]

@@ -4,6 +4,8 @@ using System.Globalization;
 using WowPacketParser.Enums;
 using WowPacketParser.Enums.Version;
 using WowPacketParser.Misc;
+using WowPacketParser.PacketStructures;
+using WowPacketParser.Proto;
 using WowPacketParser.Store;
 using WowPacketParser.Store.Objects;
 
@@ -12,52 +14,6 @@ namespace WowPacketParser.Parsing.Parsers
     [SuppressMessage("ReSharper", "UseObjectOrCollectionInitializer")]
     public static class SpellHandler
     {
-        [Parser(Opcode.SMSG_SPELL_INTERRUPT_LOG)] // 4.3.4
-        public static void HandleSpellInterruptLog(Packet packet)
-        {
-            var guid1 = new byte[8];
-            var guid2 = new byte[8];
-
-            guid2[4] = packet.ReadBit();
-            guid1[5] = packet.ReadBit();
-            guid1[6] = packet.ReadBit();
-            guid1[1] = packet.ReadBit();
-            guid1[3] = packet.ReadBit();
-            guid1[0] = packet.ReadBit();
-            guid2[3] = packet.ReadBit();
-            guid2[5] = packet.ReadBit();
-            guid2[1] = packet.ReadBit();
-            guid1[4] = packet.ReadBit();
-            guid1[7] = packet.ReadBit();
-            guid2[7] = packet.ReadBit();
-            guid2[6] = packet.ReadBit();
-            guid1[2] = packet.ReadBit();
-            guid2[2] = packet.ReadBit();
-            guid2[0] = packet.ReadBit();
-
-            packet.ReadXORByte(guid1, 7);
-            packet.ReadXORByte(guid1, 6);
-            packet.ReadXORByte(guid1, 3);
-            packet.ReadXORByte(guid1, 2);
-            packet.ReadXORByte(guid2, 3);
-            packet.ReadXORByte(guid2, 6);
-            packet.ReadXORByte(guid2, 2);
-            packet.ReadXORByte(guid2, 4);
-            packet.ReadXORByte(guid2, 7);
-            packet.ReadXORByte(guid2, 0);
-            packet.ReadXORByte(guid1, 4);
-            packet.ReadInt32<SpellId>("Interrupt Spell ID");
-            packet.ReadXORByte(guid2, 1);
-            packet.ReadXORByte(guid1, 0);
-            packet.ReadXORByte(guid1, 5);
-            packet.ReadXORByte(guid1, 1);
-            packet.ReadInt32<SpellId>("Interrupted Spell ID");
-            packet.ReadXORByte(guid2, 5);
-
-            packet.WriteGuid("GUID 1", guid1);
-            packet.WriteGuid("GUID 2", guid1);
-        }
-
         [Parser(Opcode.SMSG_PLAYER_BOUND)]
         public static void HandlePlayerBound(Packet packet)
         {
@@ -118,20 +74,18 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.SMSG_NOTIFY_DEST_LOC_SPELL_CAST)]
         public static void HandleNotifyDestLocSpellCast(Packet packet)
         {
-            // TODO: Verify and/or finish this
-            // Everything is guessed
-            packet.ReadGuid("Caster GUID");
-            packet.ReadGuid("Target GUID");
+            packet.ReadGuid("Caster");
+            packet.ReadGuid("DestTransport");
             packet.ReadInt32<SpellId>("Spell ID");
-            packet.ReadVector3("Position");
-            packet.ReadVector3("Target Position");
-            packet.ReadSingle("Elevation");
-            packet.ReadSingle("Speed");
-            packet.ReadUInt32("Duration");
-            packet.ReadInt32("Unk");
+            packet.ReadVector3("SourceLoc");
+            packet.ReadVector3("DestLoc");
+            packet.ReadSingle("MissileTrajectoryPitch");
+            packet.ReadSingle("MissileTrajectorySpeed");
+            packet.ReadUInt32("TravelTime");
+            packet.AddValue("DestLocSpellCastIndex", packet.ReadInt32() & 0xFF);
 
             if (packet.Length == 64) // packet always has length 64 length except for some rare exceptions with length 60 (hardcoded in the client)
-                packet.ReadSingle("Unk");
+                packet.ReadSingle("CastID");
         }
 
         [Parser(Opcode.SMSG_WEEKLY_SPELL_USAGE)]
@@ -217,33 +171,42 @@ namespace WowPacketParser.Parsing.Parsers
             }
         }
 
-        private static Aura ReadAuraUpdateBlock(Packet packet, int i)
+        private static Aura ReadAuraUpdateBlock(Packet packet, PacketAuraUpdateEntry entry, int i)
         {
             var aura = new Aura
             {
                 Slot = packet.ReadByte("Slot", i)
             };
+            entry.Slot = (byte)aura.Slot;
 
             var id = packet.ReadInt32<SpellId>("Spell ID", i);
             if (id <= 0)
+            {
+                entry.Remove = true;
                 return null;
-            aura.SpellId = (uint)id;
+            }
 
+            aura.SpellId = entry.Spell = (uint)id;
+
+            AuraFlag flags;
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_2_0_14333))
-                aura.AuraFlags = packet.ReadInt16E<AuraFlag>("Flags", i);
+                flags = packet.ReadInt16E<AuraFlag>("Flags", i);
             else
-                aura.AuraFlags = packet.ReadByteE<AuraFlag>("Flags", i);
+                flags = packet.ReadByteE<AuraFlag>("Flags", i);
+
+            aura.AuraFlags = flags;
+            entry.Flags = flags.ToUniversal();
 
             aura.Level = packet.ReadByte("Level", i);
 
             aura.Charges = packet.ReadByte("Charges", i);
 
-            aura.CasterGuid = !aura.AuraFlags.HasAnyFlag(AuraFlag.NotCaster) ? packet.ReadPackedGuid("Caster GUID", i) : new WowGuid64();
+            entry.CasterUnit = aura.CasterGuid = !aura.AuraFlags.HasAnyFlag(AuraFlag.NotCaster) ? packet.ReadPackedGuid("Caster GUID", i) : WowGuid64.Empty;
 
             if (aura.AuraFlags.HasAnyFlag(AuraFlag.Duration))
             {
-                aura.MaxDuration = packet.ReadInt32("Max Duration", i);
-                aura.Duration = packet.ReadInt32("Duration", i);
+                aura.MaxDuration = entry.MaxDuration = packet.ReadInt32("Max Duration", i);
+                aura.Duration = entry.Duration = packet.ReadInt32("Duration", i);
             }
             else
             {
@@ -268,20 +231,26 @@ namespace WowPacketParser.Parsing.Parsers
             return aura;
         }
 
-        private static Aura ReadAuraUpdateBlock505(Packet packet, int i)
+        private static Aura ReadAuraUpdateBlock505(Packet packet, PacketAuraUpdateEntry entry, int i)
         {
             var aura = new Aura
             {
                 Slot = packet.ReadByte("Slot", i)
             };
+            entry.Slot = (byte) aura.Slot;
 
             var id = packet.ReadInt32<SpellId>("Spell ID", i);
             if (id <= 0)
+            {
+                entry.Remove = true;
                 return null;
+            }
 
-            aura.SpellId = (uint)id;
+            aura.SpellId = entry.Spell = (uint)id;
 
-            aura.AuraFlags = packet.ReadByteE<AuraFlagMoP>("Flags", i);
+            var flags = packet.ReadByteE<AuraFlagMoP>("Flags", i);
+            aura.AuraFlags = flags;
+            entry.Flags = flags.ToUniversal();
 
             var mask = packet.ReadUInt32("Effect Mask", i);
 
@@ -289,12 +258,12 @@ namespace WowPacketParser.Parsing.Parsers
 
             aura.Charges = packet.ReadByte("Charges", i);
 
-            aura.CasterGuid = !aura.AuraFlags.HasAnyFlag(AuraFlagMoP.NoCaster) ? packet.ReadPackedGuid("Caster GUID", i) : new WowGuid64();
+            entry.CasterUnit = aura.CasterGuid = !aura.AuraFlags.HasAnyFlag(AuraFlagMoP.NoCaster) ? packet.ReadPackedGuid("Caster GUID", i) : WowGuid64.Empty;
 
             if (aura.AuraFlags.HasAnyFlag(AuraFlagMoP.Duration))
             {
-                aura.MaxDuration = packet.ReadInt32("Max Duration", i);
-                aura.Duration = packet.ReadInt32("Duration", i);
+                aura.MaxDuration = entry.MaxDuration = packet.ReadInt32("Max Duration", i);
+                aura.Duration = entry.Duration = packet.ReadInt32("Duration", i);
             }
             else
             {
@@ -320,16 +289,23 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.SMSG_AURA_UPDATE)]
         public static void HandleAuraUpdate(Packet packet)
         {
+            PacketAuraUpdate packetAuraUpdate = new();
+            if (packet.Opcode == Opcodes.GetOpcode(Opcode.SMSG_AURA_UPDATE, Direction.ServerToClient))
+                packet.Holder.AuraUpdate = packetAuraUpdate;
+
             var guid = packet.ReadPackedGuid("GUID");
+            packetAuraUpdate.Unit = guid;
             var i = 0;
             var auras = new List<Aura>();
             while (packet.CanRead())
             {
+                var auraEntry = new PacketAuraUpdateEntry();
+                packetAuraUpdate.Updates.Add(auraEntry);
                 Aura aura;
                 if (ClientVersion.AddedInVersion(ClientVersionBuild.V5_0_5_16048))
-                    aura = ReadAuraUpdateBlock505(packet, i++);
+                    aura = ReadAuraUpdateBlock505(packet, auraEntry, i++);
                 else
-                    aura = ReadAuraUpdateBlock(packet, i++);
+                    aura = ReadAuraUpdateBlock(packet, auraEntry, i++);
 
                 if (aura != null)
                     auras.Add(aura);
@@ -486,13 +462,13 @@ namespace WowPacketParser.Parsing.Parsers
                 }
 
                 if (hasMovementFlags2)
-                    packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                    packet.ReadBitsE<Enums.v4.MovementFlag2>("Extra Movement Flags", 13);
 
                 if (hasFallData)
                     hasFallDirection = packet.ReadBit("Has Fall Direction");
 
                 if (hasMovementFlags)
-                    packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
+                    packet.ReadBitsE<Enums.v4.MovementFlag>("Movement Flags", 30);
 
                 packet.ReadXORByte(guid, 1);
                 packet.ReadXORByte(guid, 2);
@@ -624,10 +600,10 @@ namespace WowPacketParser.Parsing.Parsers
                 }
 
                 if (hasMovementFlags2)
-                    packet.ReadBitsE<MovementFlagExtra>("Movement flags extra", 12);
+                    packet.ReadBitsE<Enums.v4.MovementFlag2>("Movement flags extra", 12);
 
                 if (hasMovementFlags)
-                    packet.ReadBitsE<MovementFlag>("Movement flags", 30);
+                    packet.ReadBitsE<Enums.v4.MovementFlag>("Movement flags", 30);
 
                 if (hasFallData)
                     hasFallDirection = packet.ReadBit("hasFallDirection");
@@ -705,25 +681,31 @@ namespace WowPacketParser.Parsing.Parsers
         public static void HandleSpellStart(Packet packet)
         {
             bool isSpellGo = packet.Opcode == Opcodes.GetOpcode(Opcode.SMSG_SPELL_GO, Direction.ServerToClient);
+            PacketSpellData packetSpellData = new();
+            if (isSpellGo)
+                packet.Holder.SpellGo = new PacketSpellGo() {Data = packetSpellData};
+            else
+                packet.Holder.SpellStart = new PacketSpellStart() {Data = packetSpellData};
 
             var casterGUID = packet.ReadPackedGuid("Caster GUID");
-            packet.ReadPackedGuid("Caster Unit GUID");
+            packetSpellData.Caster = packet.ReadPackedGuid("Caster Unit GUID");
 
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_0_2_9056))
                 packet.ReadByte("Cast Count");
 
-            var spellId = packet.ReadInt32<SpellId>("Spell ID");
+            var spellId = packetSpellData.Spell = (uint)packet.ReadInt32<SpellId>("Spell ID");
 
             if (ClientVersion.RemovedInVersion(ClientVersionBuild.V3_0_2_9056) && !isSpellGo)
-                packet.ReadByte("Cast Count");
+                packetSpellData.CastCount = packet.ReadByte("Cast Count");
 
             CastFlag flags;
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_0_2_9056))
                 flags = packet.ReadInt32E<CastFlag>("Cast Flags");
             else
                 flags = packet.ReadUInt16E<CastFlag>("Cast Flags");
+            packetSpellData.Flags = (uint)flags;
 
-            packet.ReadUInt32("Time");
+            packetSpellData.CastTime = packet.ReadUInt32("Time");
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V4_3_0_15005))
                 packet.ReadUInt32("Time2");
 
@@ -731,12 +713,12 @@ namespace WowPacketParser.Parsing.Parsers
             {
                 var hitCount = packet.ReadByte("Hit Count");
                 for (var i = 0; i < hitCount; i++)
-                    packet.ReadGuid("Hit GUID", i);
+                    packetSpellData.HitTargets.Add(packet.ReadGuid("Hit GUID", i));
 
                 var missCount = packet.ReadByte("Miss Count");
                 for (var i = 0; i < missCount; i++)
                 {
-                    packet.ReadGuid("Miss GUID", i);
+                    packetSpellData.MissedTargets.Add(packet.ReadGuid("Miss GUID", i));
 
                     var missType = packet.ReadByteE<SpellMissType>("Miss Type", i);
                     if (missType == SpellMissType.Reflect)
@@ -746,10 +728,11 @@ namespace WowPacketParser.Parsing.Parsers
 
             var targetFlags = packet.ReadInt32E<TargetFlag>("Target Flags");
 
-            WowGuid targetGUID = new WowGuid64();
+            WowGuid targetGUID = WowGuid64.Empty;
             if (targetFlags.HasAnyFlag(TargetFlag.Unit | TargetFlag.CorpseEnemy | TargetFlag.GameObject |
                 TargetFlag.CorpseAlly | TargetFlag.UnitMinipet))
                 targetGUID = packet.ReadPackedGuid("Target GUID");
+            packetSpellData.TargetUnit = targetGUID;
 
             if (targetFlags.HasAnyFlag(TargetFlag.Item | TargetFlag.TradeItem))
                 packet.ReadPackedGuid("Item Target GUID");
@@ -767,7 +750,7 @@ namespace WowPacketParser.Parsing.Parsers
                 if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_0_8_9464))
                     packet.ReadPackedGuid("Destination Transport GUID");
 
-                packet.ReadVector3("Destination Position");
+                packetSpellData.DstLocation = packet.ReadVector3("Destination Position");
             }
 
             if (targetFlags.HasAnyFlag(TargetFlag.NameString))
@@ -823,8 +806,8 @@ namespace WowPacketParser.Parsing.Parsers
 
             if (flags.HasAnyFlag(CastFlag.Projectile))
             {
-                packet.ReadInt32("Ammo Display ID");
-                packet.ReadInt32E<InventoryType>("Ammo Inventory Type");
+                packetSpellData.AmmoDisplayId = packet.ReadInt32("Ammo Display ID");
+                packetSpellData.AmmoInventoryType = (uint)packet.ReadInt32E<InventoryType>("Ammo Inventory Type");
             }
 
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_0_2_9056))
@@ -845,7 +828,7 @@ namespace WowPacketParser.Parsing.Parsers
                         var targetCount = packet.ReadInt32("Extra Targets Count");
                         for (var i = 0; i < targetCount; i++)
                         {
-                            packet.ReadVector3("Extra Target Position", i);
+                            packetSpellData.TargetPoints.Add(packet.ReadVector3("Extra Target Position", i));
                             packet.ReadGuid("Extra Target GUID", i);
                         }
                     }
@@ -872,7 +855,7 @@ namespace WowPacketParser.Parsing.Parsers
             {
                 NpcSpellClick spellClick = new NpcSpellClick
                 {
-                    SpellID = (uint) spellId,
+                    SpellID = spellId,
                     CasterGUID = casterGUID,
                     TargetGUID = targetGUID
                 };
@@ -881,7 +864,7 @@ namespace WowPacketParser.Parsing.Parsers
             }
 
             if (isSpellGo)
-                packet.AddSniffData(StoreNameType.Spell, spellId, "SPELL_GO");
+                packet.AddSniffData(StoreNameType.Spell, (int)spellId, "SPELL_GO");
         }
 
         [Parser(Opcode.SMSG_LEARNED_SPELL)]
@@ -1020,15 +1003,17 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.SMSG_CAST_FAILED)]
         public static void HandleCastFailed(Packet packet)
         {
+            var spellFail = packet.Holder.SpellCastFailed = new();
             if (ClientVersion.AddedInVersion(ClientType.WrathOfTheLichKing))
-                packet.ReadByte("Cast count");
+                spellFail.CastId = packet.ReadByte("Cast count");
 
-            packet.ReadUInt32<SpellId>("Spell ID");
+            spellFail.Spell = packet.ReadUInt32<SpellId>("Spell ID");
 
             var result = packet.ReadByteE<SpellCastFailureReason>("Reason");
+            spellFail.Success = result == SpellCastFailureReason.Success;
 
             if (ClientVersion.RemovedInVersion(ClientType.WrathOfTheLichKing))
-                packet.ReadByte("Cast count");
+                spellFail.CastId = packet.ReadByte("Cast count");
 
             switch (result)
             {
@@ -1108,10 +1093,11 @@ namespace WowPacketParser.Parsing.Parsers
         [Parser(Opcode.SMSG_SPELL_FAILED_OTHER)]
         public static void HandleSpellFailedOther(Packet packet)
         {
-            packet.ReadPackedGuid("Guid");
-            packet.ReadByte("Cast count");
-            packet.ReadUInt32<SpellId>("Spell ID");
-            packet.ReadByteE<SpellCastFailureReason>("Reason");
+            var spellFail = packet.Holder.SpellFailure = new();
+            spellFail.Caster = packet.ReadPackedGuid("Guid");
+            spellFail.CastId = packet.ReadByte("Cast count");
+            spellFail.Spell = packet.ReadUInt32<SpellId>("Spell ID");
+            spellFail.Success = packet.ReadByteE<SpellCastFailureReason>("Reason") == SpellCastFailureReason.Success;
         }
 
         [Parser(Opcode.SMSG_SPELL_INSTAKILL_LOG)]

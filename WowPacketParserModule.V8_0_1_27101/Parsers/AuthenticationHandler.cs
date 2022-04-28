@@ -39,12 +39,34 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
                 var classes = packet.ReadUInt32("AvailableClasses");
                 var templates = packet.ReadUInt32("Templates");
                 packet.ReadUInt32("AccountCurrency");
-                packet.ReadTime("Time");
 
-                for (var i = 0; i < classes; ++i)
+                if (ClientVersion.AddedInVersion(ClientVersionBuild.V9_0_5_37503) &&
+                    ClientVersion.Expansion != ClientType.Classic)
+                    packet.ReadTime64("Time");
+                else
+                    packet.ReadTime("Time");
+
+                if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_3_0_33062))
                 {
-                    packet.ReadByteE<Class>("Class", "AvailableClasses", i);
-                    packet.ReadByteE<ClientType>("RequiredExpansion", "AvailableClasses", i);
+                    for (var i = 0; i < classes; ++i)
+                    {
+                        packet.ReadByteE<Race>("RaceID", "AvailableClasses", i);
+                        var classesForRace = packet.ReadUInt32();
+                        for (var j = 0u; j < classesForRace; ++j)
+                        {
+                            packet.ReadByteE<Class>("ClassID", "AvailableClasses", i, "Classes", j);
+                            packet.ReadByteE<ClientType>("ActiveExpansionLevel", "AvailableClasses", i, "Classes", j);
+                            packet.ReadByteE<ClientType>("AccountExpansionLevel", "AvailableClasses", i, "Classes", j);
+                        }
+                    }
+                }
+                else
+                {
+                    for (var i = 0; i < classes; ++i)
+                    {
+                        packet.ReadByteE<Class>("Class", "AvailableClasses", i);
+                        packet.ReadByteE<ClientType>("RequiredExpansion", "AvailableClasses", i);
+                    }
                 }
 
                 packet.ResetBitReader();

@@ -1,11 +1,10 @@
 using WowPacketParser.Enums;
-using WowPacketParser.Misc;
 using WowPacketParser.SQL;
 
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("quest_request_items")]
-    public sealed class QuestRequestItems : IDataModel
+    public sealed record QuestRequestItems : IDataModel
     {
         [DBFieldName("ID", true)]
         public uint? ID;
@@ -26,6 +25,6 @@ namespace WowPacketParser.Store.Objects
         public string CompletionText;
 
         [DBFieldName("VerifiedBuild")]
-        public int? VerifiedBuild = ClientVersion.BuildInt;
+        public int? VerifiedBuild;
     }
 }

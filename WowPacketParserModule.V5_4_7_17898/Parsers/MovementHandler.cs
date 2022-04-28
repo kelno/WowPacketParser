@@ -1,7 +1,11 @@
-﻿using WowPacketParser.Enums;
+﻿using Google.Protobuf.WellKnownTypes;
+using WowPacketParser.Enums;
 using WowPacketParser.Misc;
 using WowPacketParser.Parsing;
+using WowPacketParser.Proto;
 using CoreParsers = WowPacketParser.Parsing.Parsers;
+using MovementFlag = WowPacketParser.Enums.v4.MovementFlag;
+using MovementFlag2 = WowPacketParser.Enums.v4.MovementFlag2;
 
 namespace WowPacketParserModule.V5_4_7_17898.Parsers
 {
@@ -56,8 +60,9 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
         [Parser(Opcode.SMSG_LOGIN_SET_TIME_SPEED)]
         public static void HandleLoginSetTimeSpeed(Packet packet)
         {
-            packet.ReadPackedTime("Game Time");
-            packet.ReadSingle("Game Speed");
+            PacketLoginSetTimeSpeed setTime = packet.Holder.LoginSetTimeSpeed = new();
+            setTime.GameTime = packet.ReadPackedTime("Game Time").ToUniversalTime().ToTimestamp();
+            setTime.NewSpeed = packet.ReadSingle("Game Speed");
             packet.ReadInt32("Unk Int32");
             packet.ReadInt32("Unk Int32");
 
@@ -85,6 +90,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
         [Parser(Opcode.SMSG_ON_MONSTER_MOVE)]
         public static void HandleMonsterMove(Packet packet)
         {
+            var monsterMove = packet.Holder.MonsterMove = new();
             var pos = new Vector3();
 
             var ownerGUID = new byte[8];
@@ -145,7 +151,8 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             if (splineType == 3)
             {
                 packet.ParseBitStream(factingTargetGUID, 5, 3, 6, 1, 4, 2, 0, 7);
-                packet.WriteGuid("Facting Target GUID", factingTargetGUID);
+                var lookTarget = monsterMove.LookTarget = new();
+                lookTarget.Target = packet.WriteGuid("Facing Target GUID", factingTargetGUID);
             }
 
             packet.ReadXORByte(ownerGUID, 3);
@@ -172,7 +179,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 packet.ReadByte("Byte6D");
 
             if (splineType == 4)
-                packet.ReadSingle("Facing Angle");
+                monsterMove.LookOrientation = packet.ReadSingle("Facing Angle");
 
             if (bit40)
                 packet.ReadInt32("Int40");
@@ -216,6 +223,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                     endpos = spot;
                 }
 
+                monsterMove.Points.Add(spot);
                 packet.AddValue("Spline Waypoint", spot, i);
             }
 
@@ -226,9 +234,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
 
             if (splineType == 2)
             {
-                packet.ReadSingle("FloatC0");
-                packet.ReadSingle("FloatC4");
-                packet.ReadSingle("FloatC8");
+                monsterMove.LookPosition = packet.ReadVector3("Facing Spot");
             }
 
             if (bit54)
@@ -257,11 +263,13 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                     Y = mid.Y - waypoints[i].Y,
                     Z = mid.Z - waypoints[i].Z
                 };
+                monsterMove.PackedPoints.Add(vec);
                 packet.AddValue("Waypoint", vec, i);
             }
 
-            packet.WriteGuid("Owner GUID", ownerGUID);
+            monsterMove.Mover = packet.WriteGuid("Owner GUID", ownerGUID);
             packet.WriteGuid("Guid2", guid2);
+            monsterMove.Position = pos;
         }
 
         [Parser(Opcode.SMSG_MOVE_UPDATE)]
@@ -293,7 +301,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             var hasPitch = !packet.ReadBit();
 
             if (hasExtraMovementFlags)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             guid[7] = packet.ReadBit();
             var counter = (int)packet.ReadBits(22);
@@ -397,6 +405,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
         [Parser(Opcode.SMSG_PHASE_SHIFT_CHANGE)]
         public static void HandlePhaseShift(Packet packet)
         {
+            var phaseShift = packet.Holder.PhaseShift = new PacketPhaseShift();
             CoreParsers.MovementHandler.ActivePhases.Clear();
 
             packet.ReadUInt32("UInt32 1");
@@ -404,27 +413,31 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             var count = packet.ReadUInt32() / 2;
             packet.AddValue("Inactive Terrain swap count", count);
             for (var i = 0; i < count; ++i)
-                packet.ReadInt16<MapId>("Inactive Terrain swap", i);
+                phaseShift.PreloadMaps.Add((uint)packet.ReadInt16<MapId>("Inactive Terrain swap", i));
 
             count = packet.ReadUInt32() / 2;
             packet.AddValue("WorldMapArea swap count", count);
             for (var i = 0; i < count; ++i)
-                packet.ReadUInt16("WorldMapArea swap", i);
+                phaseShift.UiMapPhase.Add(packet.ReadUInt16("WorldMapArea swap", i));
 
             count = packet.ReadUInt32() / 2;
             packet.AddValue("Phases count", count);
             for (var i = 0; i < count; ++i)
-                CoreParsers.MovementHandler.ActivePhases.Add(packet.ReadUInt16("Phase id", i), true); // Phase.dbc
+            {
+                var phaseId = packet.ReadUInt16("Phase id", i);
+                phaseShift.Phases.Add(phaseId);
+                CoreParsers.MovementHandler.ActivePhases.Add(phaseId, true); // Phase.dbc
+            }
 
             count = packet.ReadUInt32() / 2;
             packet.AddValue("Active Terrain swap count", count);
             for (var i = 0; i < count; ++i)
-                packet.ReadInt16<MapId>("Active Terrain swap", i);
+                phaseShift.VisibleMaps.Add((uint)packet.ReadInt16<MapId>("Active Terrain swap", i));
 
             var guid = packet.StartBitStream(4, 6, 1, 7, 2, 0, 5, 3);
             packet.ParseBitStream(guid, 0, 4, 7, 6, 3, 5, 1, 2);
 
-            packet.WriteGuid("GUID", guid);
+            phaseShift.Client = packet.WriteGuid("GUID", guid);
         }
 
         [Parser(Opcode.SMSG_FLIGHT_SPLINE_SYNC)]
@@ -500,7 +513,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 hasFallDirection = packet.ReadBit();
 
             if (hasExtraMovementFlags)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasMovementFlags)
                 packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
@@ -619,7 +632,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             var bit94 = packet.ReadBit();
 
             if (hasExtraMovementFlags)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasTransportData)
             {
@@ -770,7 +783,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             packet.ReadXORByte(guid, 4);
             packet.ReadXORByte(guid, 3);
@@ -895,7 +908,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 hasFallDirection = packet.ReadBit();
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasMovementFlag)
                 packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
@@ -1027,7 +1040,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             for (var i = 0; i < bits98; ++i)
                 packet.ReadInt32("IntED", i);
@@ -1162,7 +1175,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             packet.ReadXORByte(guid, 2);
             packet.ReadXORByte(guid, 5);
@@ -1288,7 +1301,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             if (hasMovementFlags)
                 packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             packet.ReadXORByte(guid, 1);
 
@@ -1420,7 +1433,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 hasFallDirection = packet.ReadBit();
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             packet.ReadXORByte(guid, 6);
             packet.ReadXORByte(guid, 4);
@@ -1536,7 +1549,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             guid[1] = packet.ReadBit();
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasTransportData)
             {
@@ -1682,7 +1695,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             }
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasMovementFlags)
                 packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
@@ -1823,7 +1836,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 hasFallDirection = packet.ReadBit();
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             for (var i = 0; i < bits98; ++i)
                 packet.ReadInt32("IntED", i);
@@ -1959,7 +1972,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 hasFallDirection = packet.ReadBit();
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             for (var i = 0; i < bits98; ++i)
                 packet.ReadInt32("IntED", i);
@@ -2073,7 +2086,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             var hasPitch = !packet.ReadBit();
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasTransportData)
             {
@@ -2225,7 +2238,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 hasFallDirection = packet.ReadBit();
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasMovementFlag)
                 packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
@@ -2344,7 +2357,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             var hasFallData = packet.ReadBit();
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasFallData)
                 hasFallDirection = packet.ReadBit();
@@ -2496,7 +2509,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             }
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasFallData)
                 hasFallDirection = packet.ReadBit();
@@ -2593,7 +2606,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             var hasUnkTime = !packet.ReadBit();
             guid[1] = packet.ReadBit();
             var hasFallData = packet.ReadBit();
-            var hasMovementFlagExtra = !packet.ReadBit();
+            var hasMovementFlag2 = !packet.ReadBit();
             guid[3] = packet.ReadBit();
             var bitAC = packet.ReadBit();
             var hasMovementFlag = !packet.ReadBit();
@@ -2623,8 +2636,8 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 transportGuid[3] = packet.ReadBit();
             }
 
-            if (hasMovementFlagExtra)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+            if (hasMovementFlag2)
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasMovementFlag)
                 packet.ReadBitsE<MovementFlag>("Movement Flags", 30);
@@ -2763,7 +2776,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             }
 
             if (hasMovementFlags2)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasFallData)
                 hasFallDirection = packet.ReadBit();
@@ -3120,7 +3133,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             var bit9C = packet.ReadBit();
 
             if (hasMovementFlagsExtra)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             guid[2] = packet.ReadBit();
             var bitB4 = packet.ReadBit();
@@ -3268,7 +3281,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
                 hasFallDirection = packet.ReadBit();
 
             if (hasMovementFlagsExtra)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             guid[7] = packet.ReadBit();
             var bitA8 = !packet.ReadBit();
@@ -3403,7 +3416,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             guid[7] = packet.ReadBit();
 
             if (hasMovementFlagsExtra)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasFallData)
             {
@@ -3527,7 +3540,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             var hasTime = !packet.ReadBit();
 
             if (hasMovementFlagsExtra)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             if (hasMovementFlags)
                 packet.ReadBitsE<MovementFlag>("Movement flags", 30);
@@ -3646,7 +3659,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             guid[7] = packet.ReadBit();
 
             if (hasMovementFlagsExtra)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             var bit78 = !packet.ReadBit();
             var bitB4 = packet.ReadBit();
@@ -3772,7 +3785,7 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             var bitB0 = !packet.ReadBit();
 
             if (hasMovementFlagsExtra)
-                packet.ReadBitsE<MovementFlagExtra>("Extra Movement Flags", 13);
+                packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 13);
 
             guid[1] = packet.ReadBit();
             if (hasTransport)

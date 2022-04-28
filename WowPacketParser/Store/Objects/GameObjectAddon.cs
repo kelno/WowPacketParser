@@ -1,9 +1,10 @@
+using WowPacketParser.Enums;
 using WowPacketParser.SQL;
 
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("gameobject_addon")]
-    public sealed class GameObjectAddon : IDataModel
+    public sealed record GameObjectAddon : IDataModel
     {
         [DBFieldName("guid", true, true)]
         public string GUID;
@@ -19,5 +20,11 @@ namespace WowPacketParser.Store.Objects
 
         [DBFieldName("parent_rotation3")]
         public float? parentRot3;
+
+        [DBFieldName("WorldEffectID", TargetedDatabase.Legion)]
+        public uint? WorldEffectID;
+
+        [DBFieldName("AIAnimKitID", TargetedDatabase.Shadowlands)]
+        public uint? AIAnimKitID;
     }
 }

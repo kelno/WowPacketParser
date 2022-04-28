@@ -26,6 +26,8 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadInt32E<Class>("Class", idx);
             packet.ReadInt32("CreatureID", idx);
             packet.ReadInt32("HonorLevel", idx);
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V9_2_0_42423))
+                packet.ReadInt32("Role", idx);
 
             for (int i = 0; i < statsCount; i++)
                 packet.ReadUInt32("Stats", i, idx);
@@ -70,6 +72,7 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
         }
 
         [Parser(Opcode.SMSG_PVP_LOG_DATA)]
+        [Parser(Opcode.SMSG_PVP_MATCH_STATISTICS)]
         public static void HandlePvPLogData(Packet packet)
         {
             var hasRatings = packet.ReadBit("HasRatings");
@@ -96,8 +99,8 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
                 ReadPvPMatchPlayerStatistics(packet, "Statistics", i);
         }
 
-        [Parser(Opcode.SMSG_REQUEST_PVP_BRAWL_INFO_RESPONSE, ClientVersionBuild.V8_2_0_30898)]
-        public static void HandleRequestPVPBrawlInfoResponse(Packet packet)
+        [Parser(Opcode.SMSG_REQUEST_SCHEDULED_PVP_INFO_RESPONSE, ClientVersionBuild.V8_2_0_30898)]
+        public static void HandleRequestScheduledPVPInfoResponse(Packet packet)
         {
             packet.ReadInt32("PvpBrawlID");
             packet.ReadInt32("TimeToBrawl");
@@ -114,16 +117,41 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadBit("IsRequeue");
         }
 
-        [Parser(Opcode.SMSG_MAP_OBJECTIVE_ADD)]
-        public static void HandleMapObjectiveAdd(Packet packet)
+        [Parser(Opcode.SMSG_UPDATE_CAPTURE_POINT)]
+        public static void HandleUpdateCapturePoint(Packet packet)
         {
             V6_0_2_19033.Parsers.BattlegroundHandler.ReadBattlegroundCapturePointInfo(packet, "CapturePointInfo");
         }
 
-        [Parser(Opcode.SMSG_MAP_OBJECTIVE_REMOVE)]
-        public static void HandleMapObjectiveRemove(Packet packet)
+        [Parser(Opcode.SMSG_CAPTURE_POINT_REMOVED)]
+        public static void HandleCapturePointRemoved(Packet packet)
         {
             packet.ReadPackedGuid128("ObjectiveGuid");
+        }
+
+        [Parser(Opcode.SMSG_RATED_PVP_INFO)]
+        public static void HandleRatedPvPInfo(Packet packet)
+        {
+            packet.ReadInt32("PersonalRating");
+            packet.ReadInt32("Ranking");
+            packet.ReadInt32("SeasonPlayed");
+            packet.ReadInt32("SeasonWon");
+            packet.ReadInt32("Unused1");
+            packet.ReadInt32("Unused2");
+            packet.ReadInt32("WeeklyPlayed");
+            packet.ReadInt32("WeeklyWon");
+            packet.ReadInt32("BestWeeklyRating");
+            packet.ReadInt32("LastWeeksBestRating");
+            packet.ReadInt32("BestSeasonRating");
+            packet.ReadInt32("PvpTierID");
+            packet.ReadInt32("Unused3");
+            packet.ReadInt32("WeeklyBestWinPvpTierID");
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V9_1_5_40772))
+            {
+                packet.ReadInt32("Unused4");
+                packet.ReadInt32("Rank");
+            }
+            packet.ReadBit("Disqualified");
         }
     }
 }

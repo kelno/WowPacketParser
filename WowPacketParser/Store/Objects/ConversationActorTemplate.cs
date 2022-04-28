@@ -1,4 +1,5 @@
-﻿using WowPacketParser.Misc;
+﻿using WowPacketParser.Enums;
+using WowPacketParser.Misc;
 using WowPacketParser.SQL;
 
 namespace WowPacketParser.Store.Objects
@@ -9,11 +10,11 @@ namespace WowPacketParser.Store.Objects
         CreatureActor = 1
     };
 
-    [DBTableName("conversation_actor_template")]
-    public sealed class ConversationActorTemplate : IDataModel
+    [DBTableName("conversation_actor_template", TargetedDatabase.Zero, TargetedDatabase.BattleForAzeroth)]
+    public sealed record ConversationActorTemplate : IDataModel
     {
         [DBFieldName("Id", true)]
-        public uint? Id;
+        public int? Id;
 
         [DBFieldName("CreatureId")]
         public uint? CreatureId;
@@ -23,6 +24,7 @@ namespace WowPacketParser.Store.Objects
 
         public WowGuid Guid;
         public uint? Type;
+        public bool? NoActorObject;
 
         [DBFieldName("VerifiedBuild")]
         public int? VerifiedBuild = ClientVersion.BuildInt;

@@ -21,8 +21,8 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadPackedGuid128("ItemGUID");
         }
 
-        [Parser(Opcode.SMSG_AZERITE_EMPOWERED_ITEM_RESPEC_OPEN)]
-        public static void HandleAzeriteEmpoweredItemRespecOpen(Packet packet)
+        [Parser(Opcode.SMSG_AZERITE_RESPEC_NPC)]
+        public static void HandleAzeriteRespecNPC(Packet packet)
         {
             packet.ReadPackedGuid128("ReforgerGUID");
         }
@@ -41,9 +41,9 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadUInt32("QuantityInInventory");
             packet.ReadInt32("DungeonEncounterID");
 
+            packet.ReadUInt32("BattlePetSpeciesID");
             packet.ReadUInt32("BattlePetBreedID");
             packet.ReadUInt32("BattlePetBreedQuality");
-            packet.ReadUInt32("BattlePetSpeciesID");
             packet.ReadUInt32("BattlePetLevel");
 
             packet.ReadPackedGuid128("ItemGUID");

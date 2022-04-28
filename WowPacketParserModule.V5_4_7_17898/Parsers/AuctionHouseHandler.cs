@@ -1,6 +1,7 @@
 using WowPacketParser.Enums;
 using WowPacketParser.Misc;
 using WowPacketParser.Parsing;
+using CoreParsers = WowPacketParser.Parsing.Parsers;
 
 namespace WowPacketParserModule.V5_4_7_17898.Parsers
 {
@@ -44,6 +45,9 @@ namespace WowPacketParserModule.V5_4_7_17898.Parsers
             packet.ReadXORByte(guid, 0);
 
             packet.WriteGuid("Guid", guid);
+
+            CoreParsers.NpcHandler.LastGossipOption.Reset();
+            CoreParsers.NpcHandler.TempGossipOptionPOI.Reset();
         }
     }
 }

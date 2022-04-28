@@ -6,9 +6,11 @@ using WowPacketParser.Store.Objects.UpdateFields.LegacyImplementation;
 
 namespace WowPacketParser.Store.Objects
 {
-    public sealed class GameObject : WoWObject, IDataModel
+    public sealed record GameObject : WoWObject, IDataModel
     {
         public IGameObjectData GameObjectData;
+        public uint? WorldEffectID;
+        public uint? AIAnimKitID;
 
         public GameObject() : base()
         {

@@ -51,11 +51,11 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadBit("UnkBit", indexes);
         }
 
-        [Parser(Opcode.CMSG_REQUEST_CHALLENGE_MODE_AFFIXES)]
+        [Parser(Opcode.CMSG_REQUEST_MYTHIC_PLUS_AFFIXES)]
         public static void HandleChallengeModeZero(Packet packet) { }
 
-        [Parser(Opcode.SMSG_CHALLENGE_MODE_REWARDS)]
-        public static void HandleChallengeModeRewards(Packet packet)
+        [Parser(Opcode.SMSG_MYTHIC_PLUS_WEEKLY_REWARD_RESPONSE)]
+        public static void HandleMythicPlusWeeklyRewardResponse(Packet packet)
         {
             packet.ReadBit("IsWeeklyRewardAvailable");
 
@@ -66,8 +66,8 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
                 packet.ReadInt32("UnkInt"); // always 13 for me
         }
 
-        [Parser(Opcode.SMSG_CHALLENGE_MODE_ALL_MAP_STATS)]
-        public static void HandleChallengeModeAllMapStats(Packet packet)
+        [Parser(Opcode.SMSG_MYTHIC_PLUS_ALL_MAP_STATS)]
+        public static void HandleMythicPlusAllMapStats(Packet packet)
         {
             var unkCount = packet.ReadUInt32("Unk1");
             var unkCount2 = packet.ReadUInt32("Unk2");
@@ -89,6 +89,17 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
 
             for (int i = 0; i < unkCount3; i++)
                 ReadUnk3ChallengeModeMapStats(packet, i);
+        }
+
+        [Parser(Opcode.SMSG_MYTHIC_PLUS_CURRENT_AFFIXES)]
+        public static void HandleMythicPlusCurrentAffixes(Packet packet)
+        {
+            var count = packet.ReadUInt32();
+            for (int i = 0; i < count; i++)
+            {
+                packet.ReadInt32("KeystoneAffixID", i);
+                packet.ReadInt32("RequiredSeason", i);
+            }
         }
     }
 }

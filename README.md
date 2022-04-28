@@ -2,18 +2,14 @@ WowPacketParser (WPP)
 =====================
 
 [![GitHub license](https://img.shields.io/github/license/TrinityCore/WowPacketParser.svg?style=flat-square)](https://github.com/TrinityCore/WowPacketParser/blob/WowPacketParser/COPYING)
-[![Coverity Scan Build Status](https://img.shields.io/coverity/scan/2618.svg?style=flat-square)](https://scan.coverity.com/projects/2618)
-[![Build Status TravisCI](https://img.shields.io/travis/TrinityCore/WowPacketParser/master.svg?style=flat-square)](https://travis-ci.org/TrinityCore/WowPacketParser)
 [![Build Status AppVeyor](https://img.shields.io/appveyor/ci/DDuarte/wowpacketparser-191/master.svg?style=flat-square)](https://ci.appveyor.com/project/DDuarte/wowpacketparser-191)
-[![Docker Pulls](https://img.shields.io/docker/pulls/trinitycore/wpp.svg?style=flat-square)](https://hub.docker.com/r/trinitycore/wpp/)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/0154074816634467883a601e6c23188c)](https://www.codacy.com/app/TrinityCore/WowPacketParser?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=TrinityCore/WowPacketParser&amp;utm_campaign=Badge_Grade)
 
 Usage
 -----
 
-* Compile WowPacketParser using Visual Studio 2019 (with .NET Core SDK 3.1) or .NET Core SDK 3.1 (Linux/OSX).
+* Compile WowPacketParser using Visual Studio 2022 (with .NET 6.0 SDK) or .NET 6.0 SDK (Linux/OSX).
   Alternatively you can download compiled binaries from the links [below](#nightly-builds).
-* Edit `WowPacketParser.exe.config` to fit your needs.
+* Edit `WowPacketParser.dll.config` to fit your needs.
 * Drag one or more files (.pkt or .bin) to `WowPacketParser.exe`.
 * Command line usage: `WowPacketParser.exe [--ConfigFile path --Option1 value1 ...] filetoparse1 ...`
 
@@ -43,21 +39,21 @@ and `wpp_data_objectnames.sql` has some data to fill the database.
 
 Nightly Builds
 --------------
-.NET Core SDK 3.1 (3.1.100 or higher) or .NET Core Runtime 3.1 (3.1.100 or higher) is needed!
+.NET 6.0 SDK (6.0.102 or higher) or .NET 6.0 Runtime(6.0.102 or higher) is needed!
 
-[Download .NET Core 3.1 here!](https://dotnet.microsoft.com/download/dotnet-core/3.1)
+[Download .NET 6.0 here!](https://dotnet.microsoft.com/download/dotnet/6.0)
 
 ##### Windows
-- Visual Studio 2019
-  - [Debug](https://ci.appveyor.com/api/projects/DDuarte/wowpacketparser-191/artifacts/WowPacketParser/WPP.zip?job=Image:%20Visual%20Studio%202019;%20Configuration:%20Debug&branch=master)
-  - [Release](https://ci.appveyor.com/api/projects/DDuarte/wowpacketparser-191/artifacts/WowPacketParser/WPP.zip?job=Image:%20Visual%20Studio%202019;%20Configuration:%20Release&branch=master)
+- Visual Studio 2022
+  - [Debug](https://ci.appveyor.com/api/projects/DDuarte/wowpacketparser-191/artifacts/WowPacketParser/WPP.zip?job=Image:%20Visual%20Studio%202022;%20Configuration:%20Debug&branch=master)
+  - [Release](https://ci.appveyor.com/api/projects/DDuarte/wowpacketparser-191/artifacts/WowPacketParser/WPP.zip?job=Image:%20Visual%20Studio%202022;%20Configuration:%20Release&branch=master)
   
 ##### Linux (Ubuntu)
   - [Debug](https://ci.appveyor.com/api/projects/DDuarte/wowpacketparser-191/artifacts/WowPacketParser/WPP.zip?job=Image:%20Ubuntu;%20Configuration:%20Debug&branch=master)
   - [Release](https://ci.appveyor.com/api/projects/DDuarte/wowpacketparser-191/artifacts/WowPacketParser/WPP.zip?job=Image:%20Ubuntu;%20Configuration:%20Release&branch=master)
   
-##### macOS (currently unsupported)
-
+##### macOS (currently not supported)
+  
 Docker (experimental)
 ---------------------
 
@@ -92,4 +88,4 @@ Copyright information of third party libraries provided through NuGet can be obt
 
 ###### Provided third party libraries:
 
-DBFileReaderLib, 2019-2020 wowdev, located at https://github.com/wowdev/DBCD
+DBFileReaderLib, 2019-2022 wowdev, located at https://github.com/wowdev/DBCD

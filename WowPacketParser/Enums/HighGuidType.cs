@@ -49,7 +49,13 @@ namespace WowPacketParser.Enums
         BattlePet,
         CommerceObj,
         ClientSession,
-        Cast
+        Cast,
+        ClientConnection,
+        ClubFinder,
+        ToolsClient,
+        WorldLayer,
+        ArenaTeam,
+        Invalid
     };
 
     public enum HighGuidType624
@@ -200,7 +206,14 @@ namespace WowPacketParser.Enums
         BattlePet        = 44,
         CommerceObj      = 45,
         ClientSession    = 46,
-        Cast             = 47
+        Cast             = 47,
+        ClientConnection = 48,
+        ClubFinder       = 49,
+        ToolsClient      = 50,
+        WorldLayer       = 51,
+        ArenaTeam        = 52,
+
+        Invalid          = 63
     }
 
     public enum HighGuidTypeLegacy

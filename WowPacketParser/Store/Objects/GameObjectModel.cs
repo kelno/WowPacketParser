@@ -5,7 +5,7 @@ using WowPacketParser.SQL;
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("gameobject")]
-    public sealed class GameObjectModel : IDataModel
+    public sealed record GameObjectModel : IDataModel
     {
         [DBFieldName("guid", true, true)]
         public string GUID;
@@ -28,13 +28,13 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("spawnDifficulties", TargetedDatabase.Legion)]
         public string spawnDifficulties;
 
-        [DBFieldName("phaseMask", TargetedDatabase.Zero, TargetedDatabase.Cataclysm)]
+        [DBFieldName("phaseMask", TargetedDatabase.WrathOfTheLichKing, TargetedDatabase.Cataclysm)]
         public uint? PhaseMask;
 
         [DBFieldName("PhaseId", TargetedDatabase.Cataclysm)]
         public string PhaseID;
 
-        [DBFieldName("PhaseGroup")]
+        [DBFieldName("PhaseGroup", TargetedDatabase.Cataclysm)]
         public uint? PhaseGroup;
 
         [DBFieldName("position_x")]

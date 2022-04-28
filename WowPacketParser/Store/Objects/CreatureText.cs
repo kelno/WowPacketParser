@@ -5,7 +5,7 @@ using WowPacketParser.SQL;
 namespace WowPacketParser.Store.Objects
 {
     [DBTableName("creature_text")]
-    public sealed class CreatureText : IDataModel
+    public sealed record CreatureText : IDataModel
     {
         [DBFieldName("CreatureID", true)]
         public uint? Entry;
@@ -22,11 +22,8 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("Type")]
         public ChatMessageType? Type;
 
-        [DBFieldName("Language", TargetedDatabase.Zero, TargetedDatabase.BattleForAzeroth)]
+        [DBFieldName("Language")]
         public Language? Language;
-
-        [DBFieldName("Language", TargetedDatabase.BattleForAzeroth)]
-        public Language801? Language801;
 
         [DBFieldName("Probability")]
         public float? Probability;
@@ -42,6 +39,9 @@ namespace WowPacketParser.Store.Objects
 
         [DBFieldName("BroadcastTextId", false, true)]
         public object BroadcastTextID;
+
+        [DBFieldName("TextRange")]
+        public byte? TextRange = 0;
 
         [DBFieldName("comment")]
         public string Comment;
