@@ -848,6 +848,9 @@ namespace WowPacketParser.Parsing.Parsers
                         if (packet.ReadByte("Unk Byte") == 2)
                             packet.ReadPackedGuid("Unk Guid");
                     }
+
+                    if (targetFlags.HasAnyFlag(TargetFlag.DestinationLocation))
+                        packet.ReadByte("Unk Dest Byte");
                 }
             }
 
