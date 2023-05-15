@@ -361,6 +361,9 @@ namespace WowPacketParser.Parsing.Parsers
                 for (int k = i - start + 1; k < size; ++k)
                 {
                     int currentPosition = ++i;
+                    if (currentPosition >= mask.Count) // field might not be completely sent
+                        break;
+
                     UpdateField updateField;
                     if (mask[currentPosition])
                         updateField = packet.ReadUpdateField();
