@@ -13,7 +13,10 @@ namespace WowPacketParserModule.V9_0_1_36216.Parsers
             packet.ReadSingle("PlayerItemLevel", idx);
             packet.ReadSingle("TargetItemLevel", idx);
             packet.ReadInt16("PlayerLevelDelta", idx);
-            packet.ReadUInt16("ScalingHealthItemLevelCurveID", idx);
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V10_1_0_49318))
+                packet.ReadUInt32("ScalingHealthItemLevelCurveID", idx);
+            else
+                packet.ReadUInt16("ScalingHealthItemLevelCurveID", idx);
             packet.ReadByte("TargetLevel", idx);
             packet.ReadByte("Expansion", idx);
 
@@ -33,6 +36,9 @@ namespace WowPacketParserModule.V9_0_1_36216.Parsers
                 packet.ReadInt32("PlayerContentTuningID", idx);
                 packet.ReadInt32("TargetContentTuningID", idx);
             }
+
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V9_2_7_45114))
+                packet.ReadInt32("Unused927", idx);
 
             packet.ReadBits("Type", 4, idx);
 
@@ -82,7 +88,11 @@ namespace WowPacketParserModule.V9_0_1_36216.Parsers
             packet.ReadSByte("TargetScalingLevelDelta", idx);
             packet.ReadSingle("PlayerItemLevel", idx);
             packet.ReadSingle("TargetItemLevel", idx);
-            packet.ReadUInt16("ScalingHealthItemLevelCurveID", idx);
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V10_1_0_49318))
+                packet.ReadUInt32("ScalingHealthItemLevelCurveID", idx);
+            else
+                packet.ReadUInt16("ScalingHealthItemLevelCurveID", idx);
+
             if (ClientVersion.RemovedInVersion(ClientVersionBuild.V9_0_2_36639))
                 packet.ReadByte("ScalesWithItemLevel", idx);
             else

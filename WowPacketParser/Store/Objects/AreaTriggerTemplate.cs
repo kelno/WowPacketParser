@@ -10,7 +10,7 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("Id", true)]
         public uint? Id;
 
-        [DBFieldName("IsServerSide", TargetedDatabase.Shadowlands, true)]
+        [DBFieldName("IsServerSide", TargetedDatabaseFlag.SinceShadowlands, true)]
         public byte? IsServerSide = 0;
 
         [DBFieldName("Type")] // kept in TargetedDatabase.Shadowlands to preserve data for non-spell areatriggers
@@ -19,8 +19,8 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("Flags")]
         public uint? Flags;
 
-        [DBFieldName("Data", 6, true)] // kept in TargetedDatabase.Shadowlands to preserve data for non-spell areatriggers
-        public float?[] Data = { 0, 0, 0, 0, 0, 0 };
+        [DBFieldName("Data", 8, true)] // kept in TargetedDatabase.Shadowlands to preserve data for non-spell areatriggers
+        public float?[] Data = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
         [DBFieldName("VerifiedBuild")]
         public int? VerifiedBuild = ClientVersion.BuildInt;

@@ -4,6 +4,7 @@ using WowPacketParser.SQL;
 
 namespace WowPacketParser.Store.Objects
 {
+    [DBTableName("npc_vendor")]
     public sealed record NpcVendor : IDataModel
     {
         [DBFieldName("entry", true)]
@@ -24,10 +25,10 @@ namespace WowPacketParser.Store.Objects
         [DBFieldName("type", true)]
         public uint? Type;
 
-        [DBFieldName("PlayerConditionID", TargetedDatabase.Cataclysm)]
+        [DBFieldName("PlayerConditionID", TargetedDatabaseFlag.SinceCataclysm)]
         public uint? PlayerConditionID;
 
-        [DBFieldName("IgnoreFiltering", TargetedDatabase.WarlordsOfDraenor)]
+        [DBFieldName("IgnoreFiltering", TargetedDatabaseFlag.SinceWarlordsOfDraenor)]
         public bool? IgnoreFiltering;
 
         [DBFieldName("VerifiedBuild")]

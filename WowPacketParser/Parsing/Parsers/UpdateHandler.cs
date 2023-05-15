@@ -41,7 +41,7 @@ namespace WowPacketParser.Parsing.Parsers
                         var guid = packet.ReadPackedGuid("GUID", i);
                         var updateValues = new UpdateValues(){Legacy = new()};
                         ReadValuesUpdateBlock(packet, updateValues.Legacy, guid, i);
-                        updateObject.Updated.Add(new UpdateObject{Guid = guid, Values = updateValues, Text = partWriter.Text});
+                        updateObject.Updated.Add(new UpdateObject{Guid = guid, Values = updateValues, TextStartOffset = partWriter.StartOffset, TextLength = partWriter.Length, Text = partWriter.Text});
                         break;
                     }
                     case "Movement":
@@ -57,8 +57,10 @@ namespace WowPacketParser.Parsing.Parsers
                         var guid = packet.ReadPackedGuid("GUID", i);
                         var createType = typeString == "CreateObject1" ? CreateObjectType.InRange : CreateObjectType.Spawn;
                         var createObject = new CreateObject() { Guid = guid, Values = new() {Legacy = new()}, CreateType = createType };
-                        ReadCreateObjectBlock(packet, createObject, guid, map, i);
+                        ReadCreateObjectBlock(packet, createObject, guid, map, createType, i);
                         createObject.Text = partWriter.Text;
+                        createObject.TextStartOffset = partWriter.StartOffset;
+                        createObject.TextLength = partWriter.Length;
                         updateObject.Created.Add(createObject);
                         break;
                     }
@@ -77,11 +79,12 @@ namespace WowPacketParser.Parsing.Parsers
             }
         }
 
-        private static void ReadCreateObjectBlock(Packet packet, CreateObject createObject, WowGuid guid, uint map, object index)
+        private static void ReadCreateObjectBlock(Packet packet, CreateObject createObject, WowGuid guid, uint map, CreateObjectType createType, object index)
         {
             ObjectType objType = ObjectTypeConverter.Convert(packet.ReadByteE<ObjectTypeLegacy>("Object Type", index));
             WoWObject obj = CreateObject(objType, guid, map);
 
+            obj.CreateType = createType;
             obj.Movement = ReadMovementUpdateBlock(packet, guid, index);
             obj.UpdateFields = ReadValuesUpdateBlockOnCreate(packet, createObject.Values.Legacy, objType, index);
             obj.DynamicUpdateFields = ReadDynamicValuesUpdateBlockOnCreate(packet, objType, index);
@@ -162,7 +165,7 @@ namespace WowPacketParser.Parsing.Parsers
             {
                 var partWriter = new StringBuilderProtoPart(packet.Writer);
                 var guid = packet.ReadPackedGuid("Object GUID", index, j);
-                packet.Holder.UpdateObject.Destroyed.Add(new DestroyedObject(){Guid = guid, Text = partWriter.Text});
+                packet.Holder.UpdateObject.Destroyed.Add(new DestroyedObject(){Guid = guid, TextStartOffset = partWriter.StartOffset, TextLength = partWriter.Length, Text = partWriter.Text});
             }
         }
 
@@ -3096,7 +3099,7 @@ namespace WowPacketParser.Parsing.Parsers
 
             if (packet.CanRead())
                 packet.ReadBool("Despawn Animation");
-            
+
             var update = packet.Holder.UpdateObject = new();
             update.Destroyed.Add(new DestroyedObject()
             {

@@ -35,16 +35,19 @@ namespace WowPacketParserModule.V4_3_4_15595.Parsers
                         var guid = packet.ReadPackedGuid("GUID", i);
                         var updateValues = new UpdateValues(){Legacy = new()};
                         CoreParsers.UpdateHandler.ReadValuesUpdateBlock(packet, updateValues.Legacy, guid, i);
-                        updateObject.Updated.Add(new UpdateObject{Guid = guid, Values = updateValues, Text = partWriter.Text });
+                        updateObject.Updated.Add(new UpdateObject{Guid = guid, Values = updateValues, TextStartOffset = partWriter.StartOffset, TextLength = partWriter.Length, Text = partWriter.Text });
                         break;
                     }
                     case UpdateTypeCataclysm.CreateObject1:
                     case UpdateTypeCataclysm.CreateObject2:
                     {
                         var guid = packet.ReadPackedGuid("GUID", i);
-                        var createObject = new CreateObject() { Guid = guid, Values = new(){Legacy = new()}, CreateType = type.ToCreateObjectType() };
-                        ReadCreateObjectBlock(packet, createObject, guid, map, i);
+                        var createType = type.ToCreateObjectType();
+                        var createObject = new CreateObject() { Guid = guid, Values = new(){Legacy = new()}, CreateType = createType };
+                        ReadCreateObjectBlock(packet, createObject, guid, map, createType, i);
                         createObject.Text = partWriter.Text;
+                        createObject.TextStartOffset = partWriter.StartOffset;
+                        createObject.TextLength = partWriter.Length;
                         updateObject.Created.Add(createObject);
                         break;
                     }
@@ -57,11 +60,12 @@ namespace WowPacketParserModule.V4_3_4_15595.Parsers
             }
         }
 
-        private static void ReadCreateObjectBlock(Packet packet, CreateObject createObject, WowGuid guid, uint map, object index)
+        private static void ReadCreateObjectBlock(Packet packet, CreateObject createObject, WowGuid guid, uint map, CreateObjectType createType, object index)
         {
             ObjectType objType = ObjectTypeConverter.Convert(packet.ReadByteE<ObjectTypeLegacy>("Object Type", index));
             WoWObject obj = CoreParsers.UpdateHandler.CreateObject(objType, guid, map);
 
+            obj.CreateType = createType;
             obj.Movement = ReadMovementUpdateBlock434(packet, guid, index);
             obj.UpdateFields = CoreParsers.UpdateHandler.ReadValuesUpdateBlockOnCreate(packet, createObject.Values.Legacy, objType, index);
 

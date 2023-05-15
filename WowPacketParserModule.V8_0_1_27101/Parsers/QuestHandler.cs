@@ -452,7 +452,9 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             packet.ReadUInt32("MissingQuestCount");
 
             int max = 100;
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_2_5_31921))
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V10_0_7_48676))
+                max = 175;
+            else if (ClientVersion.AddedInVersion(ClientVersionBuild.V8_2_5_31921))
                 max = 125;
 
             for (var i = 0; i < max; i++)
@@ -535,11 +537,11 @@ namespace WowPacketParserModule.V8_0_1_27101.Parsers
             var emotesCount = packet.ReadUInt32("EmotesCount");
 
             // QuestDescEmote
-            questOfferReward.Emote = new uint?[] { 0, 0, 0, 0 };
+            questOfferReward.Emote = new int?[] { 0, 0, 0, 0 };
             questOfferReward.EmoteDelay = new uint?[] { 0, 0, 0, 0 };
             for (var i = 0; i < emotesCount; i++)
             {
-                questOfferReward.Emote[i] = (uint)packet.ReadInt32("Type");
+                questOfferReward.Emote[i] = packet.ReadInt32("Type");
                 questOfferReward.EmoteDelay[i] = packet.ReadUInt32("Delay");
             }
 

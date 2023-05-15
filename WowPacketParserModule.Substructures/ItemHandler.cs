@@ -17,6 +17,7 @@ namespace WowPacketParserModule.Substructures
 
             var hasBonuses = packet.ReadBit("HasItemBonus", indexes);
             var hasModifications = packet.ReadBit("HasModifications", indexes);
+            packet.ResetBitReader();
             if (hasBonuses)
             {
                 instance.Context = packet.ReadByte("Context", indexes);
@@ -50,6 +51,7 @@ namespace WowPacketParserModule.Substructures
             packet.ResetBitReader();
             var hasBonuses = packet.ReadBit("HasItemBonus", indexes);
             var hasModifications = packet.ReadBit("HasModifications", indexes);
+            packet.ResetBitReader();
             if (hasBonuses)
             {
                 instance.Context = packet.ReadByte("Context", indexes);
@@ -82,10 +84,11 @@ namespace WowPacketParserModule.Substructures
 
             packet.ResetBitReader();
             var hasBonuses = packet.ReadBit("HasItemBonus", indexes);
+            packet.ResetBitReader();
 
             {
-                packet.ResetBitReader();
                 var modificationCount = packet.ReadBits(6);
+                packet.ResetBitReader();
                 for (var j = 0u; j < modificationCount; ++j)
                 {
                     var value = packet.ReadInt32();
@@ -117,10 +120,11 @@ namespace WowPacketParserModule.Substructures
 
             packet.ResetBitReader();
             var hasBonuses = packet.ReadBit("HasItemBonus", indexes);
+            packet.ResetBitReader();
 
             {
-                packet.ResetBitReader();
                 var modificationCount = packet.ReadBits(6);
+                packet.ResetBitReader();
                 for (var j = 0u; j < modificationCount; ++j)
                 {
                     var value = packet.ReadInt32();
@@ -145,13 +149,53 @@ namespace WowPacketParserModule.Substructures
 
         public static ItemInstance ReadItemInstance(Packet packet, params object[] indexes)
         {
-            if (ClientVersion.AddedInVersion(ClientVersionBuild.V2_5_1_38835) && ClientVersion.IsBurningCrusadeClassicClientVersionBuild(ClientVersion.Build))
+            if (ClientVersion.AddedInVersion(ClientVersionBuild.V2_5_1_38835) &&
+               (ClientVersion.IsBurningCrusadeClassicClientVersionBuild(ClientVersion.Build) ||
+                ClientVersion.IsClassicSeasonOfMasteryClientVersionBuild(ClientVersion.Build) ||
+                ClientVersion.IsWotLKClientVersionBuild(ClientVersion.Build)))
                 return ReadItemInstance251(packet, indexes);
             if (ClientVersion.RemovedInVersion(ClientVersionBuild.V8_1_5_29683) || ClientVersion.IsClassicVanillaClientVersionBuild(ClientVersion.Build))
                 return ReadItemInstance602(packet, indexes);
             if (ClientVersion.AddedInVersion(ClientType.Shadowlands))
                 return ReadItemInstance901(packet, indexes);
             return ReadItemInstance815(packet, indexes);
+        }
+
+        public static ItemEnchantData ReadItemEnchantData(Packet packet, params object[] indexes)
+        {
+            return new ItemEnchantData
+            {
+                ID = packet.ReadInt32("ID", indexes),
+                Expiration = packet.ReadUInt32("Expiration", indexes),
+                Charges = packet.ReadInt32("Charges", indexes),
+                Slot = packet.ReadByte("Slot", indexes)
+            };
+        }
+
+        public static ItemGemData ReadItemGemData(Packet packet, params object[] indexes)
+        {
+            return new ItemGemData
+            {
+                Slot = packet.ReadByte("Slot", indexes),
+                Item = ReadItemInstance(packet, "Item", indexes)
+            };
+        }
+
+        public static void ReadItemBonusKey(Packet packet, params object[] indexes)
+        {
+            packet.ReadInt32("ItemID", indexes);
+            var itemBonusListCount = packet.ReadUInt32();
+            var itemModifiersCount = packet.ReadUInt32();
+
+            for (var i = 0u; i < itemBonusListCount; ++i)
+                packet.ReadInt32("BonusListID", indexes, i);
+
+            for (var i = 0u; i < itemModifiersCount; ++i)
+            {
+                var value = packet.ReadInt32();
+                ItemModifier mod = packet.ReadByteE<ItemModifier>();
+                packet.AddValue(mod.ToString(), value, indexes);
+            }
         }
     }
 }

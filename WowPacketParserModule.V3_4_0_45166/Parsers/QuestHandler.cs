@@ -3,8 +3,9 @@ using WowPacketParser.Misc;
 using WowPacketParser.Parsing;
 using WowPacketParser.Store;
 using WowPacketParser.Store.Objects;
+using CoreParsers = WowPacketParser.Parsing.Parsers;
 
-namespace WowPacketParserModule.V2_5_1_38835.Parsers
+namespace WowPacketParserModule.V3_4_0_45166.Parsers
 {
     public static class QuestHandler
     {
@@ -46,9 +47,18 @@ namespace WowPacketParserModule.V2_5_1_38835.Parsers
 
             quest.RewardBonusMoney = (uint)packet.ReadInt32("RewardBonusMoney");
 
-            quest.RewardDisplaySpellLegion = new uint?[3];
-            for (int i = 0; i < 3; ++i)
-                quest.RewardDisplaySpellLegion[i] = (uint)packet.ReadInt32("RewardDisplaySpell", i);
+            for (uint i = 0; i < 3; ++i)
+            {
+                QuestRewardDisplaySpell questRewardDisplaySpell = new QuestRewardDisplaySpell
+                {
+                    QuestID = (uint)id.Key,
+                    Idx = i,
+                    SpellID = (uint)packet.ReadInt32<SpellId>("SpellID", i, "RewardDisplaySpell"),
+                };
+
+                if (questRewardDisplaySpell.SpellID != 0)
+                    Storage.QuestRewardDisplaySpells.Add(questRewardDisplaySpell, packet.TimeSpan);
+            }
 
             quest.RewardSpellWod = (uint)packet.ReadInt32("RewardSpell");
             quest.RewardHonorWod = (uint)packet.ReadInt32("RewardHonor");
@@ -79,7 +89,7 @@ namespace WowPacketParserModule.V2_5_1_38835.Parsers
             quest.RewardChoiceItemID = new uint?[6];
             quest.RewardChoiceItemQuantity = new uint?[6];
             quest.RewardChoiceItemDisplayID = new uint?[6];
-            for (int i = 0; i < 6; ++i) // CliQuestInfoChoiceItem
+            for (int i = 0; i < 6; ++i)
             {
                 quest.RewardChoiceItemID[i] = (uint)packet.ReadInt32("RewardChoiceItemID", i);
                 quest.RewardChoiceItemQuantity[i] = (uint)packet.ReadInt32("RewardChoiceItemQuantity", i);
@@ -98,6 +108,8 @@ namespace WowPacketParserModule.V2_5_1_38835.Parsers
             quest.RewardNumSkillUps = (uint)packet.ReadInt32("RewardNumSkillUps");
             quest.QuestGiverPortrait = (uint)packet.ReadInt32("PortraitGiver");
             quest.PortraitGiverMount = (uint)packet.ReadInt32("PortraitGiverMount");
+            quest.PortraitGiverModelSceneID = packet.ReadInt32("PortraitGiverModelSceneID");
+
             quest.QuestTurnInPortrait = (uint)packet.ReadInt32("PortraitTurnIn");
 
             quest.RewardFactionID = new uint?[5];
@@ -132,6 +144,7 @@ namespace WowPacketParserModule.V2_5_1_38835.Parsers
             quest.Expansion = packet.ReadInt32("Expansion");
 
             packet.ResetBitReader();
+
             uint logTitleLen = packet.ReadBits(9);
             uint logDescriptionLen = packet.ReadBits(12);
             uint questDescriptionLen = packet.ReadBits(12);

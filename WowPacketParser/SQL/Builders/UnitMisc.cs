@@ -42,6 +42,9 @@ namespace WowPacketParser.SQL.Builders
                     if (!(npc.Map.ToString(CultureInfo.InvariantCulture).MatchesFilters(Settings.MapFilters)))
                         continue;
 
+                if (!Filters.CheckFilter(npc.Guid))
+                    continue;
+
                 var auras = string.Empty;
                 var commentAuras = string.Empty;
                 if (npc.Auras != null && npc.Auras.Count != 0)
@@ -64,8 +67,11 @@ namespace WowPacketParser.SQL.Builders
                     Entry = unit.Key.GetEntry(),
                     PathID = 0,
                     MountID = (uint)npc.UnitData.MountDisplayID,
-                    Bytes1 = npc.Bytes1,
-                    Bytes2 = npc.Bytes2,
+                    StandState = npc.UnitData.StandState ?? 0,
+                    AnimTier = npc.UnitData.AnimTier ?? 0,
+                    VisFlags = npc.UnitData.VisFlags ?? 0,
+                    SheathState = npc.UnitData.SheatheState ?? 0,
+                    PvpFlags = npc.UnitData.PvpFlags ?? 0,
                     Emote = 0,
                     AIAnimKit = npc.AIAnimKit.GetValueOrDefault(0),
                     MovementAnimKit = npc.MovementAnimKit.GetValueOrDefault(0),
@@ -178,6 +184,13 @@ namespace WowPacketParser.SQL.Builders
                     if (!(npc.Map.ToString(CultureInfo.InvariantCulture).MatchesFilters(Settings.MapFilters)))
                         continue;
 
+                if (!Filters.CheckFilter(npc.Guid))
+                    continue;
+
+                // Ignore pets
+                if (npc.Guid.GetHighType() == HighGuidType.Pet)
+                    continue;
+
                 uint modelId = (uint)npc.UnitData.DisplayID;
                 if (modelId == 0)
                     continue;
@@ -192,8 +205,9 @@ namespace WowPacketParser.SQL.Builders
                     continue;
 
                 var scale = npc.ObjectData.Scale;
-                model.BoundingRadius = npc.UnitData.BoundingRadius / scale;
-                model.CombatReach = npc.UnitData.CombatReach / scale;
+                var displayScale = npc.UnitData.DisplayScale;
+                model.BoundingRadius = (npc.UnitData.BoundingRadius / scale) / displayScale;
+                model.CombatReach = (npc.UnitData.CombatReach / scale) / displayScale;
                 model.Gender = (Gender)npc.UnitData.Sex;
 
                 models.Add(model);
@@ -215,6 +229,20 @@ namespace WowPacketParser.SQL.Builders
             var templatesDb = SQLDatabase.Get(Storage.CreatureTemplateSpells);
 
             return SQLUtil.Compare(Storage.CreatureTemplateSpells, templatesDb, StoreNameType.Unit);
+        }
+
+        [BuilderMethod]
+        public static string CreatureTemplateGossip()
+        {
+            if (Storage.CreatureTemplateGossips.IsEmpty())
+                return string.Empty;
+
+            if (!Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.creature_template_gossip))
+                return string.Empty;
+
+            var templatesDb = SQLDatabase.Get(Storage.CreatureTemplateGossips);
+
+            return SQLUtil.Compare(Settings.SQLOrderByKey ? Storage.CreatureTemplateGossips.OrderBy(x => x.Item1.CreatureID).ThenBy(y => y.Item1.MenuID) : Storage.CreatureTemplateGossips, templatesDb, StoreNameType.Unit);
         }
 
         [BuilderMethod]
@@ -321,6 +349,9 @@ namespace WowPacketParser.SQL.Builders
                     if (!(npc.Value.Map.ToString(CultureInfo.InvariantCulture).MatchesFilters(Settings.MapFilters)))
                         continue;
 
+                if (!Filters.CheckFilter(npc.Value.Guid))
+                    continue;
+
                 var equip = npc.Value.GetEquipment();
                 if (equip == null)
                     continue;
@@ -418,6 +449,56 @@ namespace WowPacketParser.SQL.Builders
         }
 
         [BuilderMethod]
+        public static string Gossip925()
+        {
+            if (Storage.GossipToNpcTextMap.IsEmpty() || Settings.TargetedDatabase < TargetedDatabase.Shadowlands)
+                return string.Empty;
+
+            var count = 0;
+            var textRows = new RowList<NpcText925>();
+            var gossipRows = new RowList<GossipMenu925>();
+            foreach (var entry in Storage.GossipToNpcTextMap)
+            {
+                var npcText = entry.Value.Item1;
+                npcText.ConvertToDBStruct();
+                npcText.ID = $"@NPCTEXTID+{count}";
+
+                string comment = "";
+                if (npcText.ObjectType == ObjectType.GameObject)
+                    comment = StoreGetters.GetName(StoreNameType.GameObject, (int)npcText.ObjectEntry);
+                else if (npcText.ObjectType == ObjectType.Unit)
+                    comment = StoreGetters.GetName(StoreNameType.Unit, (int)npcText.ObjectEntry);
+
+                var npcTextRow = new Row<NpcText925>();
+                npcTextRow.Data = npcText;
+                npcTextRow.Comment = comment;
+                textRows.Add(npcTextRow);
+
+                var gossip = new Row<GossipMenu925>();
+                gossip.Data.MenuID = entry.Key;
+                gossip.Data.TextID = npcText.ID;
+                gossip.Comment = comment;
+
+                gossipRows.Add(gossip);
+
+                count++;
+            }
+
+            StringBuilder result = new StringBuilder();
+            var textDelete = new SQLDelete<NpcText925>(Tuple.Create("@NPCTEXTID+0", "@NPCTEXTID+" + (count - 1)));
+            result.Append(textDelete.Build());
+            var textInsert = new SQLInsert<NpcText925>(textRows, false);
+            result.Append(textInsert.Build());
+            result.Append('\n');
+            var gossipDelete = new SQLDelete<GossipMenu925>(gossipRows);
+            result.Append(gossipDelete.Build());
+            var gossipInsert = new SQLInsert<GossipMenu925>(gossipRows, false);
+            result.Append(gossipInsert.Build());
+
+            return result.ToString();
+        }
+
+        [BuilderMethod]
         public static string Gossip()
         {
             var result = "";
@@ -426,7 +507,14 @@ namespace WowPacketParser.SQL.Builders
             if (!Storage.Gossips.IsEmpty() && Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.gossip_menu))
             {
                 result += SQLUtil.Compare(Storage.Gossips, SQLDatabase.Get(Storage.Gossips),
-                    t => StoreGetters.GetName(StoreNameType.Unit, (int)t.ObjectEntry)); // BUG: GOs can send gossips too
+                    t => StoreGetters.GetName((t.ObjectType == ObjectType.GameObject ? StoreNameType.GameObject : StoreNameType.Unit), (int)t.ObjectEntry));
+            }
+
+            // `gossip_menu_addon`
+            if (Settings.TargetedDatabase > TargetedDatabase.Cataclysm && !Storage.GossipMenuAddons.IsEmpty() && Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.gossip_menu_addon))
+            {
+                result += '\n' + SQLUtil.Compare(Storage.GossipMenuAddons, SQLDatabase.Get(Storage.GossipMenuAddons),
+                    t => StoreGetters.GetName((t.ObjectType == ObjectType.GameObject ? StoreNameType.GameObject : StoreNameType.Unit), (int)t.ObjectEntry));
             }
 
             // `gossip_menu_option`
@@ -434,6 +522,12 @@ namespace WowPacketParser.SQL.Builders
             {
                 var store = Settings.SQLOrderByKey ? Storage.GossipMenuOptions.Values.OrderBy(x => x.Item1.MenuID).ThenBy(y => y.Item1.OptionID).ToArray() : Storage.GossipMenuOptions.Values;
                 result += SQLUtil.Compare(store, SQLDatabase.Get(Storage.GossipMenuOptions.Values), t => t.BroadcastTextIDHelper);
+            }
+
+            // `gossip_menu_option_addon`
+            if (!Storage.GossipMenuOptionAddons.IsEmpty() && Settings.SQLOutputFlag.HasAnyFlagBit(SQLOutput.gossip_menu_option))
+            {
+                result += SQLUtil.Compare(Settings.SQLOrderByKey ? Storage.GossipMenuOptionAddons.OrderBy(x => x.Item1.MenuID).ToArray() : Storage.GossipMenuOptionAddons.ToArray(), SQLDatabase.Get(Storage.GossipMenuOptionAddons), x => string.Empty);
             }
 
             return result;
@@ -553,6 +647,9 @@ namespace WowPacketParser.SQL.Builders
                     case TargetedDatabase.Shadowlands:
                         expansionBaseLevel = 60;
                         break;
+                    case TargetedDatabase.Dragonflight:
+                        expansionBaseLevel = 70;
+                        break;
                 }
             }
 
@@ -574,10 +671,13 @@ namespace WowPacketParser.SQL.Builders
                 var npc = unit.Value;
                 var minMaxLevel = getLevel(unit.Key.GetEntry());
 
+                uint gossipMenuId = 0;
+                Storage.CreatureDefaultGossips.TryGetValue(unit.Key.GetEntry(), out gossipMenuId);
+
                 var template = new CreatureTemplateNonWDB
                 {
                     Entry = unit.Key.GetEntry(),
-                    GossipMenuId = Storage.CreatureDefaultGossips.GetValueOrDefault(unit.Key.GetEntry()),
+                    GossipMenuId = gossipMenuId,
                     MinLevel = minMaxLevel.MinLevel,
                     MaxLevel = minMaxLevel.MaxLevel,
                     Faction = (uint)npc.UnitData.FactionTemplate,
@@ -643,7 +743,7 @@ namespace WowPacketParser.SQL.Builders
                     if (Storage.CreatureTemplates.TryGetValue(unit.Key.GetEntry(), out entry))
                     {
                         var sub = entry.SubName;
-                        if (sub.Length > 0)
+                        if (sub != null && sub.Length > 0)
                             template.NpcFlag |= ProcessNpcFlags(sub);
                         else // If the SubName doesn't exist or is cached, fall back to DB method
                             template.NpcFlag |= ProcessNpcFlags(subname);
@@ -822,7 +922,14 @@ namespace WowPacketParser.SQL.Builders
                 rows.Add(row);
             }
 
-            return new SQLInsert<VehicleTemplateAccessory>(rows, false).Build();
+            StringBuilder result = new StringBuilder();
+            var delete = new SQLDelete<VehicleTemplateAccessory>(rows);
+            result.Append(delete.Build());
+
+            var insert = new SQLInsert<VehicleTemplateAccessory>(rows, false);
+            result.Append(insert.Build());
+
+            return result.ToString();
         }
 
         [BuilderMethod]
@@ -881,6 +988,9 @@ namespace WowPacketParser.SQL.Builders
                 if (Settings.MapFilters.Length > 0)
                     if (!npc.Map.ToString(CultureInfo.InvariantCulture).MatchesFilters(Settings.MapFilters))
                         continue;
+
+                if (!Filters.CheckFilter(npc.Guid))
+                    continue;
 
                 var row = new Row<NpcSpellClick>();
                 row.Data.Entry = unit.Key.GetEntry();

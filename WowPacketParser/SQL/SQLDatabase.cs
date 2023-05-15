@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
-using WowPacketParser.DBC.Structures.Shadowlands;
+using WowPacketParser.DBC.Structures.Dragonflight;
 using WowPacketParser.Enums;
 using WowPacketParser.Misc;
 using WowPacketParser.Store.Objects;
@@ -26,6 +26,9 @@ namespace WowPacketParser.SQL
         public static Dictionary<string, List<int>> BroadcastTexts { get; } = new Dictionary<string, List<int>>();
         public static Dictionary<string, List<int>> BroadcastText1s { get; } = new Dictionary<string, List<int>>();
         public static Dictionary<uint? /*CreatureId*/, List<CreatureEquipment>> CreatureEquipments { get; } = new();
+        public static Dictionary<uint /*broadcastText*/, List<uint> /*npc_text ids*/> BroadcastToNPCTexts { get; } = new();
+        public static Dictionary<int /*menuID*/, List<uint> /*npc_text ids*/> GossipMenuToNPCTexts { get; } = new();
+        public static Dictionary<int /*worldStateID*/, string> WorldStateNames { get; } = new();
         public static List<POIData> POIs { get; } = new List<POIData>();
 
         private static readonly StoreNameType[] ObjectTypes =
@@ -106,6 +109,9 @@ namespace WowPacketParser.SQL
             LoadBroadcastText();
             LoadPointsOfinterest();
             LoadCreatureEquipment();
+            LoadNPCTexts();
+            LoadGossipMenuNPCTexts();
+            LoadWorldStates();
             LoadNameData();
 
             var endTime = DateTime.Now;
@@ -177,7 +183,7 @@ namespace WowPacketParser.SQL
                         }
                         else
                         {
-                            broadcastText.ConditionID = Convert.ToUInt32(reader["ConditionID"]);
+                            broadcastText.ConditionID = Convert.ToInt32(reader["ConditionID"]);
                             broadcastText.SoundEntriesID = new uint[2];
                             broadcastText.SoundEntriesID[0] = Convert.ToUInt32(reader[$"Sound{soundFieldName}ID1"]);
                             broadcastText.SoundEntriesID[1] = Convert.ToUInt32(reader[$"Sound{soundFieldName}ID2"]);
@@ -269,6 +275,82 @@ namespace WowPacketParser.SQL
             }
         }
 
+        private static void LoadNPCTexts()
+        {
+            string columns = "ID, BroadcastTextID0, BroadcastTextID1, BroadcastTextID2, BroadcastTextID3, BroadcastTextID4, BroadcastTextID5, BroadcastTextID6, BroadcastTextID7";
+            string query = $"SELECT {columns} FROM {Settings.TDBDatabase}.npc_text";
+
+            using (var command = SQLConnector.CreateCommand(query))
+            {
+                if (command == null)
+                    return;
+                using (MySqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var npcTextId = reader.GetUInt32(0);
+                        for (int i = 1; i < 9; i++)
+                        {
+                            var broadcastTextId = reader.GetUInt32(i);
+                            if (BroadcastToNPCTexts.TryGetValue(broadcastTextId, out var npcTextList))
+                                npcTextList.Add(npcTextId);
+                            else
+                                BroadcastToNPCTexts.Add(broadcastTextId, new List<uint> { npcTextId });
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void LoadGossipMenuNPCTexts()
+        {
+            string columns = "MenuID, TextID";
+            string query = $"SELECT {columns} FROM {Settings.TDBDatabase}.gossip_menu";
+
+            using (var command = SQLConnector.CreateCommand(query))
+            {
+                if (command == null)
+                    return;
+                using (MySqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var menuId = reader.GetInt32(0);
+                        var npcTextId = reader.GetUInt32(1);
+                        if (GossipMenuToNPCTexts.TryGetValue(menuId, out var list))
+                            list.Add(npcTextId);
+                        else
+                            GossipMenuToNPCTexts.Add(menuId, new List<uint> { npcTextId });
+                    }
+                }
+            }
+        }
+
+        private static void LoadWorldStates()
+        {
+            if (Settings.TargetedDatabase < TargetedDatabase.Shadowlands || Settings.TargetedDatabase >= TargetedDatabase.Classic)
+                return;
+
+            string columns = "`ID`, `Comment`";
+            string query = $"SELECT {columns} FROM {Settings.TDBDatabase}.world_state";
+
+            using (var command = SQLConnector.CreateCommand(query))
+            {
+                if (command == null)
+                    return;
+
+                using (MySqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var worldStateID = reader.GetInt32(0);
+                        var comment = reader.GetString(1);
+                        WorldStateNames.Add(worldStateID, comment);
+                    }
+                }
+            }
+        }
+
         private static void LoadNameData()
         {
             // Unit
@@ -291,7 +373,7 @@ namespace WowPacketParser.SQL
             }
 
             // Phase - Before Cataclysm there was phasemask system
-            if (Settings.TargetedDatabase >= TargetedDatabase.Cataclysm)
+            if (Settings.TargetedDatabase > TargetedDatabase.Cataclysm)
             {
                 NameStores.Add(StoreNameType.PhaseId, GetDict<int, string>(
                     $"SELECT `ID`, `Name` FROM {Settings.TDBDatabase}.phase_name;"));
@@ -376,6 +458,16 @@ namespace WowPacketParser.SQL
             }
 
             return result;
+        }
+
+        public static uint GetNPCTextIDByMenuIDAndBroadcastText(int menuId, uint broadcastTextID)
+        {
+            if (!BroadcastToNPCTexts.TryGetValue(broadcastTextID, out var npcTextsByBroadcast))
+                return 0;
+            if (!GossipMenuToNPCTexts.TryGetValue(menuId, out var npcTextsByMenuId))
+                return npcTextsByBroadcast[0];
+
+            return npcTextsByBroadcast.FirstOrDefault(n => npcTextsByMenuId.Contains(n));
         }
     }
 }

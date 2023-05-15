@@ -35,14 +35,14 @@ namespace WowPacketParserModule.V2_5_1_38707.Parsers
                 {
                     var partWriter = new StringBuilderProtoPart(packet.Writer);
                     var guid = packet.ReadPackedGuid128("ObjectGUID", "Destroyed", i);
-                    updateObject.Destroyed.Add(new DestroyedObject(){Guid=guid, Text = partWriter.Text});
+                    updateObject.Destroyed.Add(new DestroyedObject(){Guid=guid, TextStartOffset = partWriter.StartOffset, TextLength = partWriter.Length, Text = partWriter.Text});
                 }
 
                 for (var i = 0; i < outOfRangeObjCount; i++)
                 {
                     var partWriter = new StringBuilderProtoPart(packet.Writer);
                     var guid = packet.ReadPackedGuid128("ObjectGUID", "OutOfRange", i);
-                    updateObject.OutOfRange.Add(new DestroyedObject(){Guid=guid, Text = partWriter.Text});
+                    updateObject.OutOfRange.Add(new DestroyedObject(){Guid=guid, TextStartOffset = partWriter.StartOffset, TextLength = partWriter.Length, Text = partWriter.Text});
                 }
             }
             packet.ReadUInt32("Data size");
@@ -138,16 +138,19 @@ namespace WowPacketParserModule.V2_5_1_38707.Parsers
                             updateValues.Legacy = new();
                             CoreParsers.UpdateHandler.ReadValuesUpdateBlock(packet, updateValues.Legacy, guid, i);
                         }
-                        updateObject.Updated.Add(new UpdateObject{Guid = guid, Values = updateValues, Text = partWriter.Text});
+                        updateObject.Updated.Add(new UpdateObject{Guid = guid, Values = updateValues, TextStartOffset = partWriter.StartOffset, TextLength = partWriter.Length, Text = partWriter.Text});
                         break;
                     }
                     case UpdateTypeCataclysm.CreateObject1:
                     case UpdateTypeCataclysm.CreateObject2:
                     {
                         var guid = packet.ReadPackedGuid128("Object Guid", i);
-                        var createObject = new CreateObject() { Guid = guid, Values = new(){}, CreateType = type.ToCreateObjectType() };
-                        ReadCreateObjectBlock(packet, createObject, guid, map, i);
+                        var createType = type.ToCreateObjectType();
+                        var createObject = new CreateObject() { Guid = guid, Values = new(){}, CreateType = createType };
+                        ReadCreateObjectBlock(packet, createObject, guid, map, createType, i);
                         createObject.Text = partWriter.Text;
+                        createObject.TextStartOffset = partWriter.StartOffset;
+                        createObject.TextLength = partWriter.Length;
                         updateObject.Created.Add(createObject);
                         break;
                     }
@@ -155,14 +158,20 @@ namespace WowPacketParserModule.V2_5_1_38707.Parsers
             }
         }
 
-        private static void ReadCreateObjectBlock(Packet packet, CreateObject createObject, WowGuid guid, uint map, object index)
+        private static void ReadCreateObjectBlock(Packet packet, CreateObject createObject, WowGuid guid, uint map, CreateObjectType createType, object index)
         {
-            ObjectType objType = ObjectTypeConverter.Convert(packet.ReadByteE<ObjectType801>("Object Type", index));
+            ObjectType objType;
             if (ClientVersion.RemovedInVersion(ClientVersionBuild.V2_5_4_42695))
+            {
+                objType = ObjectTypeConverter.Convert(packet.ReadByteE<ObjectTypeBCC>("Object Type", index));
                 packet.ReadInt32("HeirFlags", index);
+            }
+            else
+                objType = ObjectTypeConverter.Convert(packet.ReadByteE<ObjectType801>("Object Type", index));
 
             WoWObject obj = CoreParsers.UpdateHandler.CreateObject(objType, guid, map);
 
+            obj.CreateType = createType;
             obj.Movement = ReadMovementUpdateBlock(packet, guid, obj, index);
 
             if (ClientVersion.AddedInVersion(ClientVersionBuild.V2_5_4_42695))
@@ -295,7 +304,9 @@ namespace WowPacketParserModule.V2_5_1_38707.Parsers
                 packet.ResetBitReader();
                 packet.ReadPackedGuid128("MoverGUID", index);
 
-                if (ClientVersion.AddedInVersion(ClientVersionBuild.V2_5_3_41812))
+                if (ClientVersion.AddedInVersion(ClientBranch.Classic, ClientVersionBuild.V1_14_1_40666) ||
+                    ClientVersion.AddedInVersion(ClientBranch.TBC, ClientVersionBuild.V2_5_3_41812) ||
+                    ClientVersion.AddedInVersion(ClientBranch.WotLK, ClientVersionBuild.V3_4_0_45166))
                 {
                     moveInfo.Flags = (uint)packet.ReadUInt32E<MovementFlag>("Movement Flags", index);
                     moveInfo.Flags2 = (uint)packet.ReadUInt32E<MovementFlag2>("Movement Flags 2", index);
@@ -315,7 +326,9 @@ namespace WowPacketParserModule.V2_5_1_38707.Parsers
                 for (var i = 0; i < removeForcesIDsCount; i++)
                     packet.ReadPackedGuid128("RemoveForcesIDs", index, i);
 
-                if (ClientVersion.RemovedInVersion(ClientVersionBuild.V2_5_3_41812))
+                if (ClientVersion.RemovedInVersion(ClientBranch.Classic, ClientVersionBuild.V1_14_1_40666) ||
+                    ClientVersion.RemovedInVersion(ClientBranch.TBC, ClientVersionBuild.V2_5_3_41812) ||
+                    ClientVersion.RemovedInVersion(ClientBranch.WotLK, ClientVersionBuild.V3_4_0_45166))
                 {
                     moveInfo.Flags = (uint)packet.ReadBitsE<MovementFlag>("Movement Flags", 30, index);
                     moveInfo.Flags2 = (uint)packet.ReadBitsE<MovementFlag2>("Extra Movement Flags", 18, index);
@@ -326,7 +339,10 @@ namespace WowPacketParserModule.V2_5_1_38707.Parsers
                 packet.ReadBit("HasSpline", index);
                 packet.ReadBit("HeightChangeFailed", index);
                 packet.ReadBit("RemoteTimeValid", index);
-                var hasInertia = ClientVersion.AddedInVersion(ClientVersionBuild.V2_5_3_41812) && packet.ReadBit("Has Inertia", index);
+                var hasInertia = (ClientVersion.AddedInVersion(ClientBranch.Classic, ClientVersionBuild.V1_14_1_40666) ||
+                                  ClientVersion.AddedInVersion(ClientBranch.TBC, ClientVersionBuild.V2_5_3_41812) ||
+                                  ClientVersion.AddedInVersion(ClientBranch.WotLK, ClientVersionBuild.V3_4_0_45166)) &&
+                                  packet.ReadBit("Has Inertia", index);
 
                 if (hasTransport)
                     V8_0_1_27101.Parsers.UpdateHandler.ReadTransportData(moveInfo, guid, packet, index);
@@ -721,6 +737,9 @@ namespace WowPacketParserModule.V2_5_1_38707.Parsers
             {
                 packet.ResetBitReader();
                 packet.ReadBit("ReplaceActive", index);
+                if (ClientVersion.AddedInVersion(ClientVersionBuild.V3_4_0_45166))
+                    packet.ReadBit("StopAnimKits", index);
+
                 var replaceObject = packet.ReadBit();
                 if (replaceObject)
                     packet.ReadPackedGuid128("ReplaceObject", index);
@@ -749,7 +768,7 @@ namespace WowPacketParserModule.V2_5_1_38707.Parsers
                 packet.ResetBitReader();
                 var hasSceneInstanceIDs = packet.ReadBit("ScenePendingInstances", index);
                 var hasRuneState = packet.ReadBit("Runes", index);
-                var hasActionButtons = packet.ReadBit("Unk1132", index);
+                var hasActionButtons = packet.ReadBit("HasActionButtons", index);
 
                 if (hasSceneInstanceIDs)
                 {

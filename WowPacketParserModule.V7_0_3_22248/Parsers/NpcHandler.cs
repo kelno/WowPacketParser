@@ -16,7 +16,7 @@ namespace WowPacketParserModule.V7_0_3_22248.Parsers
         {
             var gossipQuest = new GossipQuestOption();
             gossipQuest.QuestId = (uint)packet.ReadInt32("QuestID", idx);
-            if (ClientVersion.AddedInVersion(ClientType.Shadowlands))
+            if (ClientVersion.AddedInVersion(ClientType.Shadowlands) || ClientVersion.IsClassicClientVersionBuild(ClientVersion.Build))
                 packet.ReadInt32("ContentTuningID", idx);
 
             packet.ReadInt32("QuestType", idx);
@@ -64,7 +64,8 @@ namespace WowPacketParserModule.V7_0_3_22248.Parsers
             int menuId = packet.ReadInt32("GossipID");
             gossip.MenuID = packetGossip.MenuId = (uint)menuId;
 
-            packet.ReadInt32("FriendshipFactionID");
+            int friendshipFactionID = packet.ReadInt32("FriendshipFactionID");
+            CoreParsers.NpcHandler.AddGossipAddon(packetGossip.MenuId, friendshipFactionID, guid, packet.TimeSpan);
 
             gossip.TextID = packetGossip.TextId = (uint)packet.ReadInt32("TextID");
 
@@ -79,8 +80,13 @@ namespace WowPacketParserModule.V7_0_3_22248.Parsers
 
             if (guid.GetObjectType() == ObjectType.Unit)
             {
-                if (!Storage.CreatureDefaultGossips.ContainsKey(guid.GetEntry()))
-                    Storage.CreatureDefaultGossips.Add(guid.GetEntry(), (uint)menuId);
+                CreatureTemplateGossip creatureTemplateGossip = new()
+                {
+                    CreatureID = guid.GetEntry(),
+                    MenuID = (uint)menuId
+                };
+                Storage.CreatureTemplateGossips.Add(creatureTemplateGossip);
+                Storage.CreatureDefaultGossips.Add(guid.GetEntry(), (uint)menuId);
             }
 
             Storage.Gossips.Add(gossip, packet.TimeSpan);

@@ -85,7 +85,7 @@ namespace WowPacketParserModule.V5_4_0_17359.Parsers
             var guidBytes = new byte[8];
 
             uint menuId = packetGossip.MenuId = packet.ReadUInt32("Menu Id");
-            packet.ReadUInt32("Friendship Faction");
+            uint friendshipFactionID = packet.ReadUInt32("Friendship Faction");
             uint textId = packetGossip.TextId = packet.ReadUInt32("Text Id");
             packet.StartBitStream(guidBytes, 0, 1);
             uint amountOfOptions = packet.ReadBits("Amount of Options", 20);
@@ -139,7 +139,7 @@ namespace WowPacketParserModule.V5_4_0_17359.Parsers
                 var boxText = packet.ReadWoWString("Box Text", boxTextLen[i], i);
                 gossipOption.BoxCoded = packet.ReadBool("Box", i);
                 gossipOption.OptionText = packet.ReadWoWString("Text", optionTextLen[i], i);
-                gossipOption.OptionIcon = packet.ReadByteE<GossipOptionIcon>("Icon", i);
+                gossipOption.OptionNpc = packet.ReadByteE<GossipOptionNpc>("OptionNPC", i);
 
                 if (!string.IsNullOrEmpty(boxText))
                     gossipOption.BoxText = boxText;
@@ -149,7 +149,7 @@ namespace WowPacketParserModule.V5_4_0_17359.Parsers
                 packetGossip.Options.Add(new GossipMessageOption()
                 {
                     OptionIndex = gossipOption.OptionID.Value,
-                    OptionIcon = (int)gossipOption.OptionIcon,
+                    OptionNpc = (int)gossipOption.OptionNpc,
                     BoxCoded = gossipOption.BoxCoded.Value,
                     BoxCost = gossipOption.BoxMoney.Value,
                     Text = gossipOption.OptionText,
@@ -173,11 +173,19 @@ namespace WowPacketParserModule.V5_4_0_17359.Parsers
 
             if (guid.GetObjectType() == ObjectType.Unit)
             {
-                if (!Storage.CreatureDefaultGossips.ContainsKey(guid.GetEntry()))
-                    Storage.CreatureDefaultGossips.Add(guid.GetEntry(), menuId);
+                CreatureTemplateGossip creatureTemplateGossip = new()
+                {
+                    CreatureID = guid.GetEntry(),
+                    MenuID = menuId
+                };
+                Storage.CreatureTemplateGossips.Add(creatureTemplateGossip);
+                Storage.CreatureDefaultGossips.Add(guid.GetEntry(), menuId);
             }
 
             Storage.Gossips.Add(gossip, packet.TimeSpan);
+
+            CoreParsers.NpcHandler.AddGossipAddon(packetGossip.MenuId, (int)friendshipFactionID, guid, packet.TimeSpan);
+
             CoreParsers.NpcHandler.UpdateLastGossipOptionActionMessage(packet.TimeSpan, menuId);
 
             packet.AddSniffData(StoreNameType.Gossip, (int)menuId, guid.GetEntry().ToString(CultureInfo.InvariantCulture));

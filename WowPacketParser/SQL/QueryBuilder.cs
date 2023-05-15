@@ -15,6 +15,7 @@ namespace WowPacketParser.SQL
 
         private static readonly List<Tuple<string, FieldInfo, List<DBFieldNameAttribute>>> _databaseFields = SQLUtil.GetFields<T>();
         private static readonly FieldInfo _primaryKeyReflectionField = SQLUtil.GetFirstPrimaryKey<T>();
+        private static readonly bool _isHotfixTable = SQLUtil.IsHotfixTable<T>();
 
         public SQLWhere(RowList<T> conditionList, bool onlyPrimaryKeys = false)
         {
@@ -33,13 +34,17 @@ namespace WowPacketParser.SQL
 
             if (_onlyPrimaryKeys && _conditions.GetPrimaryKeyCount() == 1)
             {
+                if (_isHotfixTable)
+                    whereClause.Append("`VerifiedBuild`>0 AND ");
+
                 var field = _databaseFields.Single(f => f.Item2 == _primaryKeyReflectionField);
 
                 whereClause.Append(field.Item1);
                 if (_conditions.Count == 1)
                 {
                     whereClause.Append("=");
-                    whereClause.Append(field.Item2.GetValue(_conditions.First().Data));
+                    object value = field.Item2.GetValue(_conditions.First().Data);
+                    whereClause.Append(SQLUtil.ToSQLValue(value, noQuotes: field.Item3.Any(a => a.NoQuotes == true)));
                 }
                 else
                 {
@@ -48,7 +53,7 @@ namespace WowPacketParser.SQL
                     foreach (Row<T> condition in _conditions)
                     {
                         object value = field.Item2.GetValue(condition.Data);
-                        whereClause.Append(SQLUtil.ToSQLValue(value));
+                        whereClause.Append(SQLUtil.ToSQLValue(value, noQuotes: field.Item3.Any(a => a.NoQuotes == true)));
 
                         if (!string.IsNullOrEmpty(condition.Comment))
                             whereClause.Append(" /*" + condition.Comment + "*/");
@@ -74,6 +79,10 @@ namespace WowPacketParser.SQL
                 foreach (Row<T> condition in _conditions)
                 {
                     whereClause.Append("(");
+
+                    if (_isHotfixTable)
+                        whereClause.Append("`VerifiedBuild`>0 AND ");
+
                     foreach (var field in _databaseFields)
                     {
                         object value = field.Item2.GetValue(condition.Data);
@@ -86,7 +95,7 @@ namespace WowPacketParser.SQL
                         whereClause.Append(field.Item1);
 
                         whereClause.Append("=");
-                        whereClause.Append(SQLUtil.ToSQLValue(value));
+                        whereClause.Append(SQLUtil.ToSQLValue(value, noQuotes: field.Item3.Any(a => a.NoQuotes == true)));
                         whereClause.Append(" AND ");
                     }
 
@@ -117,7 +126,7 @@ namespace WowPacketParser.SQL
                          field.Item3.Any(a => !a.IsPrimaryKey)))
                         continue;
 
-                    whereCondition.Add(field.Item1, SQLUtil.ToSQLValue(value));
+                    whereCondition.Add(field.Item1, SQLUtil.ToSQLValue(value, noQuotes: field.Item3.Any(a => a.NoQuotes == true)));
                 }
 
                 if (!whereCondition.IsEmpty)
@@ -159,6 +168,10 @@ namespace WowPacketParser.SQL
             foreach(var pair in conditionsByFieldWithLowestDifferentValues)
             {
                 whereClause.Append("(");
+
+                if (_isHotfixTable)
+                    whereClause.Append("`VerifiedBuild`>0 AND ");
+
                 whereClause.Append(fieldWithLowestDifferentValues);
                 whereClause.Append("=");
                 whereClause.Append(pair.Key);
