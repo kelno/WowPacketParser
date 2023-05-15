@@ -861,7 +861,7 @@ namespace WowPacketParser.Parsing.Parsers
                     }
 
                     if (targetFlags.HasAnyFlag(TargetFlag.DestinationLocation))
-                        packet.ReadByte("Unk Dest Byte");
+                        packet.ReadByte("Unk Byte 2");
                 }
             }
 
