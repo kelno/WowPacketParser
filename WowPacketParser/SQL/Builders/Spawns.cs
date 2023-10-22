@@ -180,8 +180,10 @@ namespace WowPacketParser.SQL.Builders
                 row.Data.CurrentWaypoint = 0;
                 row.Data.CurHealth = (uint)creature.UnitData.MaxHealth;
                 row.Data.CurMana = (uint)creature.UnitData.MaxPower[0];
-                row.Data.NpcFlag = 0;
-                row.Data.UnitFlag = 0;
+                row.Data.NpcFlag = null;
+                row.Data.UnitFlags = null;
+                row.Data.UnitFlags2 = null;
+                row.Data.UnitFlags3 = null;
                 row.Data.DynamicFlag = 0;
 
                 row.Comment = StoreGetters.GetName(StoreNameType.Unit, (int)entry, false);
@@ -200,6 +202,10 @@ namespace WowPacketParser.SQL.Builders
 
                         // usually "template auras" do not have caster
                         if (ClientVersion.AddedInVersion(ClientType.MistsOfPandaria) ? !aura.AuraFlags.HasAnyFlag(AuraFlagMoP.NoCaster) : !aura.AuraFlags.HasAnyFlag(AuraFlag.NotCaster))
+                            continue;
+
+                        // skip temporary auras
+                        if (aura.Duration > 0)
                             continue;
 
                         auras += aura.SpellId + " ";
