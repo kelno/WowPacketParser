@@ -14,6 +14,7 @@ namespace WowPacketParser.Enums
         [UpdateField(UpdateFieldType.Float)]
         OBJECT_FIELD_SCALE_X,
         OBJECT_FIELD_PADDING,
+        [UpdateField(UpdateFieldType.Uint)]
         OBJECT_DYNAMIC_FLAGS,
         OBJECT_END,
         OBJECT_FIELD_DATA
@@ -67,6 +68,7 @@ namespace WowPacketParser.Enums
         ITEM_FIELD_ENCHANTMENT_8_3,
         ITEM_FIELD_ENCHANTMENT_9_1,
         ITEM_FIELD_ENCHANTMENT_9_3,
+        [UpdateField(UpdateFieldType.Uint)]
         ITEM_FIELD_FLAGS,
         ITEM_FIELD_GIFTCREATOR,
         ITEM_FIELD_ITEM_TEXT_ID,
@@ -133,11 +135,11 @@ namespace WowPacketParser.Enums
 
     public enum UnitField
     {
-        [UpdateField(UpdateFieldType.Int)]
+        [UpdateField(UpdateFieldType.Uint)]
         UNIT_CHANNEL_SPELL,
-        [UpdateField(UpdateFieldType.Int)]
+        [UpdateField(UpdateFieldType.Uint)]
         UNIT_CREATED_BY_SPELL,
-        [UpdateField(UpdateFieldType.Int)]
+        [UpdateField(UpdateFieldType.Uint)]
         UNIT_DYNAMIC_FLAGS,
         UNIT_END,
         [UpdateField(UpdateFieldType.Int)]
@@ -534,6 +536,7 @@ namespace WowPacketParser.Enums
         PLAYER_FIELD_WEAPON_ATK_SPEED_MULTIPLIERS,
         PLAYER_FIELD_WEAPON_DMG_MULTIPLIERS,
         PLAYER_FIELD_YESTERDAY_CONTRIBUTION,
+        [UpdateField(UpdateFieldType.Uint)]
         PLAYER_FLAGS,
         PLAYER_FLAGS_EX,
         PLAYER_GLYPHS_ENABLED,
@@ -1031,8 +1034,10 @@ namespace WowPacketParser.Enums
         CORPSE_FIELD_BYTES_2,
         CORPSE_FIELD_CUSTOM_DISPLAY_OPTION,
         CORPSE_FIELD_DISPLAY_ID,
+        [UpdateField(UpdateFieldType.Uint)]
         CORPSE_FIELD_DYNAMIC_FLAGS,
         CORPSE_FIELD_FACTIONTEMPLATE,
+        [UpdateField(UpdateFieldType.Uint)]
         CORPSE_FIELD_FLAGS,
         CORPSE_FIELD_GUILD,
         CORPSE_FIELD_GUILD_GUID,
