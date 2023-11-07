@@ -379,6 +379,7 @@ namespace WowPacketParser.Enums
         PLAYER_DUEL_TEAM,
         PLAYER_END,
         PLAYER_EXPERTISE,
+        [UpdateField(UpdateFieldType.Bytes)]
         PLAYER_EXPLORED_ZONES_1,
         PLAYER_FAKE_INEBRIATION,
         PLAYER_FARSIGHT,

@@ -383,8 +383,11 @@ namespace WowPacketParser.Parsing.Parsers
                         {
                             bool hasGuidValue = false;
                             for (var guidPart = 0; guidPart < guidSize; ++guidPart)
-                                if (mask[start + guidI * guidSize + guidPart])
+                            {
+                                var index_ = start + guidI * guidSize + guidPart;
+                                if (index_ < mask.Count && mask[start + guidI * guidSize + guidPart])
                                     hasGuidValue = true;
+                            }
 
                             if (!hasGuidValue)
                                 continue;
@@ -422,9 +425,12 @@ namespace WowPacketParser.Parsing.Parsers
                         for (var quatI = 0; quatI < quaternionCount; ++quatI)
                         {
                             bool hasQuatValue = false;
-                            for (var guidPart = 0; guidPart < 4; ++guidPart)
-                                if (mask[start + quatI * 4 + guidPart])
-                                    hasQuatValue = true;
+                                for (var guidPart = 0; guidPart < 4; ++guidPart)
+                                {
+                                    var index_ = start + quatI * 4 + guidPart;
+                                    if (index_ < mask.Count && mask[index_])
+                                        hasQuatValue = true;
+                                }
 
                             if (!hasQuatValue)
                                 continue;
@@ -442,8 +448,11 @@ namespace WowPacketParser.Parsing.Parsers
                         {
                             bool hasQuatValue = false;
                             for (var guidPart = 0; guidPart < 2; ++guidPart)
-                                if (mask[start + quatI * 2 + guidPart])
+                            {
+                                var index_ = start + quatI * 2 + guidPart;
+                                if (index_ < mask.Count && mask[index_])
                                     hasQuatValue = true;
+                            }
 
                             if (!hasQuatValue)
                                 continue;
